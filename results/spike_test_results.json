@@ -1,0 +1,44 @@
+{
+  "benchmark_name": "Sobel Edge Detection Algorithm",
+  "timestamp": "2026-08-20T15:57:08.157160",
+  "image_size": "64x64",
+  "configs_evaluated": 3,
+  "results": [
+    {
+      "cycles": 609213,
+      "instructions": 609213,
+      "ipc": 1.0,
+      "checksum": 569915,
+      "raw_match": "BENCHMARK_RESULT: cycles=609213 instret=609213 checksum=569915",
+      "config": "RocketConfig",
+      "simulator": "spike",
+      "status": "SUCCESS",
+      "wall_clock_time_sec": 0.0113,
+      "return_code": 0
+    },
+    {
+      "cycles": 609213,
+      "instructions": 609213,
+      "ipc": 1.0,
+      "checksum": 569915,
+      "raw_match": "BENCHMARK_RESULT: cycles=609213 instret=609213 checksum=569915",
+      "config": "TinyRocketConfig",
+      "simulator": "spike",
+      "status": "SUCCESS",
+      "wall_clock_time_sec": 0.0117,
+      "return_code": 0
+    },
+    {
+      "cycles": 609213,
+      "instructions": 609213,
+      "ipc": 1.0,
+      "checksum": 569915,
+      "raw_match": "BENCHMARK_RESULT: cycles=609213 instret=609213 checksum=569915",
+      "config": "SmallBoomV3Config",
+      "simulator": "spike",
+      "status": "SUCCESS",
+      "wall_clock_time_sec": 0.0099,
+      "return_code": 0
+    }
+  ]
+}

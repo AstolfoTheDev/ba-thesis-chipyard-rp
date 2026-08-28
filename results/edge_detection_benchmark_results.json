@@ -1,0 +1,52 @@
+{
+  "benchmarks_evaluated": [
+    "edge_detection",
+    "fft_benchmark"
+  ],
+  "timestamp": "2026-08-28T13:10:41.532184",
+  "configs_evaluated": 1,
+  "results": [
+    {
+      "cycles": 150825,
+      "instructions": 150825,
+      "ipc": 1.0,
+      "checksum": 127664,
+      "raw_match": "BENCHMARK_RESULT: cycles=150825 instret=150825 checksum=127664 branches=0 br_misses=0 ic_misses=0 dc_accesses=0 dc_misses=0",
+      "branches": 0,
+      "br_misses": 0,
+      "br_miss_rate_pct": 0.0,
+      "ic_misses": 0,
+      "dc_accesses": 0,
+      "dc_misses": 0,
+      "cache_miss_rate_pct": 0.0,
+      "cache_hit_rate_pct": 100.0,
+      "config": "BenchmarkRocketConfig",
+      "benchmark": "edge_detection",
+      "simulator": "spike",
+      "status": "SUCCESS",
+      "wall_clock_time_sec": 0.0183,
+      "return_code": 0
+    },
+    {
+      "cycles": 566,
+      "instructions": 566,
+      "ipc": 1.0,
+      "checksum": 414,
+      "raw_match": "BENCHMARK_RESULT: cycles=566 instret=566 checksum=414 branches=0 br_misses=0 ic_misses=0 dc_accesses=0 dc_misses=0",
+      "branches": 0,
+      "br_misses": 0,
+      "br_miss_rate_pct": 0.0,
+      "ic_misses": 0,
+      "dc_accesses": 0,
+      "dc_misses": 0,
+      "cache_miss_rate_pct": 0.0,
+      "cache_hit_rate_pct": 100.0,
+      "config": "BenchmarkRocketConfig",
+      "benchmark": "fft_benchmark",
+      "simulator": "spike",
+      "status": "SUCCESS",
+      "wall_clock_time_sec": 0.0112,
+      "return_code": 0
+    }
+  ]
+}
