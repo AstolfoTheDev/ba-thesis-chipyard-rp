@@ -1,0 +1,22 @@
+{
+    "DSERocketConfig0": {
+        "bigCores": 1,
+        "smallCores": 0,
+        "fpgaConfigName": "DSERocketConfig0VC707"
+    },
+    "DSERocketConfig1": {
+        "bigCores": 1,
+        "smallCores": 1,
+        "fpgaConfigName": "DSERocketConfig1VC707"
+    },
+    "DSERocketConfig2": {
+        "bigCores": 2,
+        "smallCores": 0,
+        "fpgaConfigName": "DSERocketConfig2VC707"
+    },
+    "DSERocketConfig3": {
+        "bigCores": 2,
+        "smallCores": 1,
+        "fpgaConfigName": "DSERocketConfig3VC707"
+    }
+}

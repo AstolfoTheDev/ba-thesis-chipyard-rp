@@ -1,0 +1,43 @@
+# Compiled Binaries & Libraries
+*.riscv
+*.elf
+*.o
+*.lo
+*.a
+*.la
+*.so
+*.dylib
+*.exe
+
+# Compressed Archives
+*.tar.gz
+*.zip
+*.tar.bz2
+*.tar.xz
+*.tgz
+
+# Build & Compilation Output Directories
+target/
+build/
+dse/fftw-3.3.10/
+
+# Python Cache & Virtual Environments
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+
+# IDEs, Editors & OS Files
+.bsp/
+.metals/
+.idea/
+.vscode/
+.DS_Store
+*.swp
+*~
+
+# Temporary & Log Files
+*.log
+*.tmp

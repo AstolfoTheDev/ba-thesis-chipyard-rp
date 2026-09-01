@@ -1,9 +1,10 @@
 {
   "benchmarks_evaluated": [
     "edge_detection",
-    "fft_benchmark"
+    "fft_benchmark",
+    "optical_flow_benchmark"
   ],
-  "timestamp": "2026-08-28T13:10:41.532184",
+  "timestamp": "2026-09-01T13:05:23.339611",
   "configs_evaluated": 1,
   "results": [
     {
@@ -20,11 +21,11 @@
       "dc_misses": 0,
       "cache_miss_rate_pct": 0.0,
       "cache_hit_rate_pct": 100.0,
-      "config": "BenchmarkRocketConfig",
+      "config": "RocketConfig",
       "benchmark": "edge_detection",
       "simulator": "spike",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 0.0183,
+      "wall_clock_time_sec": 0.0089,
       "return_code": 0
     },
     {
@@ -41,11 +42,32 @@
       "dc_misses": 0,
       "cache_miss_rate_pct": 0.0,
       "cache_hit_rate_pct": 100.0,
-      "config": "BenchmarkRocketConfig",
+      "config": "RocketConfig",
       "benchmark": "fft_benchmark",
       "simulator": "spike",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 0.0112,
+      "wall_clock_time_sec": 0.0157,
+      "return_code": 0
+    },
+    {
+      "cycles": 122470,
+      "instructions": 122470,
+      "ipc": 1.0,
+      "checksum": 39761,
+      "raw_match": "BENCHMARK_RESULT: cycles=122470 instret=122470 checksum=39761 branches=0 br_misses=0 ic_misses=0 dc_accesses=0 dc_misses=0",
+      "branches": 0,
+      "br_misses": 0,
+      "br_miss_rate_pct": 0.0,
+      "ic_misses": 0,
+      "dc_accesses": 0,
+      "dc_misses": 0,
+      "cache_miss_rate_pct": 0.0,
+      "cache_hit_rate_pct": 100.0,
+      "config": "RocketConfig",
+      "benchmark": "optical_flow_benchmark",
+      "simulator": "spike",
+      "status": "SUCCESS",
+      "wall_clock_time_sec": 0.0088,
       "return_code": 0
     }
   ]

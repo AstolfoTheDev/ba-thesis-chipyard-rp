@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Chipyard Processor Configs Benchmark Script
+Chipyard Embench-IoT 1.0 Benchmark Suite Runner
 
 This script:
-1. Discovers available Scala processor configs from Chipyard's config directory.
-2. Compiles specified benchmark C programs (Edge Detection, FFTW FFT Benchmark, etc.).
+1. Discovers available Scala processor configs from Chipyard and submodule config directories.
+2. Compiles specified Embench-IoT 1.0 bare-metal C benchmarks.
 3. Executes benchmark binaries across specified processor configs (using Verilator or Spike).
-4. Captures cycle count, instruction count, IPC, host wall-clock execution time, HPM metrics, and verification checksum.
+4. Captures cycle count, instruction count, IPC, host wall-clock execution time, HPM metrics (branches, cache miss/hits).
 5. Saves the results into a structured JSON benchmark report file.
 """
 
@@ -26,10 +26,35 @@ CONFIG_DIRS = [
     os.path.join(SUBMODULE_DIR, "src", "main", "scala")
 ]
 VERILATOR_DIR = os.path.join(CHIPYARD_DIR, "sims", "verilator")
-BENCHMARKS_DIR = os.path.join(SUBMODULE_DIR, "software")
+EMBENCH_DIR = os.path.join(SUBMODULE_DIR, "software", "embench-iot")
+SUPPORT_DIR = os.path.join(EMBENCH_DIR, "support")
+BOARD_SUPPORT = os.path.join(EMBENCH_DIR, "chipyard_boardsupport.c")
 TESTS_DIR = os.path.join(CHIPYARD_DIR, "tests")
 
-DEFAULT_OUTPUT_JSON = os.path.join(SUBMODULE_DIR, "results", "edge_detection_benchmark_results.json")
+DEFAULT_OUTPUT_JSON = os.path.join(SUBMODULE_DIR, "results", "embench_benchmark_results.json")
+
+# Embench 1.0 Benchmark Source Mapping
+EMBENCH_BENCHMARKS = {
+    "aha-mont64": ["src/aha-mont64/mont64.c"],
+    "crc32": ["src/crc32/crc_32.c"],
+    "cubic": ["src/cubic/libcubic.c", "src/cubic/basicmath_small.c"],
+    "edn": ["src/edn/libedn.c"],
+    "huffbench": ["src/huffbench/libhuffbench.c"],
+    "matmult-int": ["src/matmult-int/matmult-int.c"],
+    "minver": ["src/minver/libminver.c"],
+    "nbody": ["src/nbody/nbody.c"],
+    "nettle-aes": ["src/nettle-aes/nettle-aes.c"],
+    "nettle-sha256": ["src/nettle-sha256/nettle-sha256.c"],
+    "nsichneu": ["src/nsichneu/libnsichneu.c"],
+    "picojpeg": ["src/picojpeg/picojpeg_test.c", "src/picojpeg/libpicojpeg.c"],
+    "qrduino": ["src/qrduino/qrtest.c", "src/qrduino/qrframe.c", "src/qrduino/qrencode.c"],
+    "sglib-combined": ["src/sglib-combined/combined.c"],
+    "slre": ["src/slre/libslre.c"],
+    "st": ["src/st/libst.c"],
+    "statemate": ["src/statemate/libstatemate.c"],
+    "ud": ["src/ud/libud.c"],
+    "wikisort": ["src/wikisort/libwikisort.c"]
+}
 
 # Environment setup helper
 def get_env():
@@ -89,103 +114,42 @@ def get_gcc_path(env):
         raise RuntimeError("riscv64-unknown-elf-gcc compiler not found in PATH!")
     return gcc_path
 
-def compile_edge_detection(env, width=32, height=32):
-    src = os.path.join(BENCHMARKS_DIR, "edge_detection", "edge_detection_benchmark.c")
-    elf = os.path.join(BENCHMARKS_DIR, "edge_detection", "edge_detection_benchmark.riscv")
+def compile_embench_benchmark(env, bench_name):
+    if bench_name not in EMBENCH_BENCHMARKS:
+        raise ValueError(f"Unknown Embench benchmark: {bench_name}")
+
+    sources = EMBENCH_BENCHMARKS[bench_name]
+    src_dir = os.path.dirname(os.path.join(EMBENCH_DIR, sources[0]))
+    elf = os.path.join(EMBENCH_DIR, f"{bench_name}.riscv")
     gcc_path = get_gcc_path(env)
 
-    print(f"[+] Compiling Edge Detection benchmark source ({width}x{height}): {src}")
+    print(f"[+] Compiling Embench benchmark '{bench_name}'...")
     cmd = [
         gcc_path,
         "-O2",
-        f"-DIMG_WIDTH={width}",
-        f"-DIMG_HEIGHT={height}",
+        "-DWARMUP_HEAT=0",
+        "-DCPU_MHZ=1",
         "-march=rv64gc",
         "-mabi=lp64d",
         "-mcmodel=medany",
         "-specs=htif_nano.specs",
         "-T", os.path.join(TESTS_DIR, "htif.ld"),
-        src,
+        f"-I{SUPPORT_DIR}",
+        f"-I{src_dir}",
+        os.path.join(SUPPORT_DIR, "main.c"),
+        os.path.join(SUPPORT_DIR, "beebsc.c"),
+        BOARD_SUPPORT
+    ] + [os.path.join(EMBENCH_DIR, s) for s in sources] + [
         "-o", elf,
         "-lm"
     ]
 
     res = subprocess.run(cmd, cwd=CHIPYARD_DIR, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if res.returncode != 0:
-        print(f"[-] Compilation failed for edge_detection:\n{res.stderr}")
+        print(f"[-] Compilation failed for Embench benchmark '{bench_name}':\n{res.stderr}")
         sys.exit(1)
     print(f"[+] Successfully compiled: {elf}")
     return elf
-
-def compile_fft_benchmark(env):
-    fft_sw_dir = os.path.join(BENCHMARKS_DIR, "fft")
-    src = os.path.join(fft_sw_dir, "fft_benchmark.c")
-    elf = os.path.join(fft_sw_dir, "fft_benchmark.riscv")
-    gcc_path = get_gcc_path(env)
-
-    libfftw = os.path.join(fft_sw_dir, "libfftw3.a")
-    if not os.path.exists(libfftw):
-        print(f"[!] Warning: {libfftw} not found. FFT compilation might fail if FFTW is not installed.")
-
-    print(f"[+] Compiling FFTW benchmark source: {src}")
-    cmd = [
-        gcc_path,
-        "-O2",
-        "-march=rv64gc",
-        "-mabi=lp64d",
-        "-mcmodel=medany",
-        "-specs=htif_nano.specs",
-        "-T", os.path.join(TESTS_DIR, "htif.ld"),
-        f"-I{fft_sw_dir}",
-        src,
-        "-o", elf,
-        f"-L{fft_sw_dir}",
-        "-lfftw3",
-        "-lm"
-    ]
-
-    res = subprocess.run(cmd, cwd=CHIPYARD_DIR, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    if res.returncode != 0:
-        print(f"[-] Compilation failed for fft_benchmark:\n{res.stderr}")
-        sys.exit(1)
-    print(f"[+] Successfully compiled: {elf}")
-    return elf
-
-def compile_optical_flow(env, width=32, height=32):
-    src = os.path.join(BENCHMARKS_DIR, "edge_detection", "optical_flow_benchmark.c")
-    elf = os.path.join(BENCHMARKS_DIR, "edge_detection", "optical_flow_benchmark.riscv")
-    gcc_path = get_gcc_path(env)
-
-    print(f"[+] Compiling Optical Flow benchmark source ({width}x{height}): {src}")
-    cmd = [
-        gcc_path,
-        "-O2",
-        f"-DIMG_WIDTH={width}",
-        f"-DIMG_HEIGHT={height}",
-        "-march=rv64gc",
-        "-mabi=lp64d",
-        "-mcmodel=medany",
-        "-specs=htif_nano.specs",
-        "-T", os.path.join(TESTS_DIR, "htif.ld"),
-        src,
-        "-o", elf,
-        "-lm"
-    ]
-
-    res = subprocess.run(cmd, cwd=CHIPYARD_DIR, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    if res.returncode != 0:
-        print(f"[-] Compilation failed for optical_flow:\n{res.stderr}")
-        sys.exit(1)
-    print(f"[+] Successfully compiled: {elf}")
-    return elf
-
-def compile_benchmark(env, bench_type="edge_detection", width=32, height=32):
-    if bench_type in ["fft", "fft_benchmark"]:
-        return compile_fft_benchmark(env)
-    elif bench_type in ["optical_flow", "optflow", "optical_flow_benchmark"]:
-        return compile_optical_flow(env, width=width, height=height)
-    else:
-        return compile_edge_detection(env, width=width, height=height)
 
 def run_verilator_sim(config_name, bench_name, elf_path, env, build_missing=False, timeout=1800):
     """Run benchmark binary on Verilator simulator for given config"""
@@ -304,7 +268,7 @@ def parse_benchmark_output(output):
             "checksum": checksum,
             "raw_match": match.group(0)
         }
-        
+
         if match.group(4) is not None:
             branches = int(match.group(4))
             br_misses = int(match.group(5))
@@ -313,13 +277,10 @@ def parse_benchmark_output(output):
             dc_misses = int(match.group(8))
 
             br_miss_rate = round(br_misses / branches * 100, 2) if branches > 0 else 0.0
-            
-            # Simple combined cache miss rate approximation
+
             total_accesses = instret + dc_accesses
             total_misses = ic_misses + dc_misses
             cache_miss_rate = round(total_misses / total_accesses * 100, 2) if total_accesses > 0 else 0.0
-            
-            # Cache hit rate is 100 - miss rate
             cache_hit_rate = round(100.0 - cache_miss_rate, 2)
 
             res.update({
@@ -343,9 +304,9 @@ def parse_benchmark_output(output):
     }
 
 def print_summary_table(results):
-    """Print ASCII summary table of benchmark results"""
+    """Print ASCII summary table of Embench benchmark results"""
     print("\n" + "=" * 135)
-    print("BENCHMARK RESULTS SUMMARY")
+    print("EMBENCH-IOT 1.0 BENCHMARK RESULTS SUMMARY")
     print("=" * 135)
     header = f"{'Config':<20} | {'Benchmark':<16} | {'Simulator':<10} | {'Status':<8} | {'Cycles':<10} | {'IPC':<6} | {'Br Mispred':<10} | {'Cache Hit':<9} | {'Cache Miss':<10} | {'Time (s)':<8}"
     print(header)
@@ -359,7 +320,7 @@ def print_summary_table(results):
         cycles = str(r.get("cycles")) if r.get("cycles") is not None else "N/A"
         ipc = str(r.get("ipc")) if r.get("ipc") is not None else "N/A"
         wtime = str(r.get("wall_clock_time_sec")) if r.get("wall_clock_time_sec") is not None else "N/A"
-        
+
         br_miss = f"{r.get('br_miss_rate_pct', 0.0)}%" if "br_miss_rate_pct" in r else "N/A"
         cache_hit = f"{r.get('cache_hit_rate_pct', 0.0)}%" if "cache_hit_rate_pct" in r else "N/A"
         cache_miss = f"{r.get('cache_miss_rate_pct', 0.0)}%" if "cache_miss_rate_pct" in r else "N/A"
@@ -369,17 +330,22 @@ def print_summary_table(results):
     print("=" * 135 + "\n")
 
 def main():
-    parser = argparse.ArgumentParser(description="Run benchmark suite across Chipyard processor configs.")
-    parser.add_argument("--benchmark", choices=["edge_detection", "fft", "fft_benchmark", "optical_flow", "optical_flow_benchmark", "all"], default="all", help="Benchmark to run (default: all)")
+    parser = argparse.ArgumentParser(description="Run Embench-IoT 1.0 benchmark suite across Chipyard processor configs.")
+    parser.add_argument("--benchmark", choices=list(EMBENCH_BENCHMARKS.keys()) + ["all"], default="all", help="Embench benchmark to run (default: all)")
     parser.add_argument("--configs", nargs="+", help="Processor configs to benchmark (default: pre-compiled verilator configs or RocketConfig)")
     parser.add_argument("--simulator", choices=["verilator", "spike", "auto"], default="auto", help="Simulation backend to use")
     parser.add_argument("--output", default=DEFAULT_OUTPUT_JSON, help="Output JSON results file path")
-    parser.add_argument("--img-width", type=int, default=32, help="Image width for edge detection benchmark (default: 32)")
-    parser.add_argument("--img-height", type=int, default=32, help="Image height for edge detection benchmark (default: 32)")
     parser.add_argument("--build-missing", action="store_true", help="Automatically build missing Verilator binaries")
     parser.add_argument("--timeout", type=int, default=180, help="Per-run timeout in seconds")
+    parser.add_argument("--list-benchmarks", action="store_true", help="List available Embench-IoT 1.0 benchmarks")
     parser.add_argument("--list-configs", action="store_true", help="List available Scala processor configs")
     args = parser.parse_args()
+
+    if args.list_benchmarks:
+        print("Available Embench-IoT 1.0 Benchmarks:")
+        for b in sorted(EMBENCH_BENCHMARKS.keys()):
+            print(f" - {b}")
+        sys.exit(0)
 
     discovered_configs = discover_scala_configs()
     compiled_verilator = find_compiled_verilator_configs()
@@ -393,22 +359,16 @@ def main():
 
     env = get_env()
 
-    # Determine benchmarks to run
     if args.benchmark == "all":
-        benchmarks_to_run = ["edge_detection", "fft_benchmark", "optical_flow_benchmark"]
-    elif args.benchmark in ["fft", "fft_benchmark"]:
-        benchmarks_to_run = ["fft_benchmark"]
-    elif args.benchmark in ["optical_flow", "optical_flow_benchmark"]:
-        benchmarks_to_run = ["optical_flow_benchmark"]
+        benchmarks_to_run = sorted(EMBENCH_BENCHMARKS.keys())
     else:
-        benchmarks_to_run = ["edge_detection"]
+        benchmarks_to_run = [args.benchmark]
 
     compiled_elfs = {}
     for bench in benchmarks_to_run:
-        elf = compile_benchmark(env, bench_type=bench, width=args.img_width, height=args.img_height)
+        elf = compile_embench_benchmark(env, bench_name=bench)
         compiled_elfs[bench] = elf
 
-    # Determine target configs
     if args.configs:
         if "all" in args.configs:
             target_configs = discovered_configs
@@ -417,7 +377,6 @@ def main():
         else:
             target_configs = args.configs
     else:
-        # Use compiled verilator configs if available, otherwise default to RocketConfig
         if compiled_verilator:
             target_configs = compiled_verilator
         else:
@@ -447,16 +406,18 @@ def main():
     print_summary_table(benchmark_results)
 
     json_report = {
+        "suite": "Embench-IoT 1.0",
         "benchmarks_evaluated": benchmarks_to_run,
         "timestamp": start_timestamp,
         "configs_evaluated": len(target_configs),
         "results": benchmark_results
     }
 
+    os.makedirs(os.path.dirname(args.output), exist_ok=True)
     with open(args.output, "w", encoding="utf-8") as f:
         json.dump(json_report, f, indent=2)
 
-    print(f"[+] Benchmark results exported to: {args.output}")
+    print(f"[+] Embench 1.0 benchmark results exported to: {args.output}")
 
 if __name__ == "__main__":
     main()
