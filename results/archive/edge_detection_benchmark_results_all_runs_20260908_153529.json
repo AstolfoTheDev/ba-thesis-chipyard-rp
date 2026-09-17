@@ -1,0 +1,108 @@
+{
+  "benchmarks_evaluated": [
+    "edge_detection"
+  ],
+  "total_runs": 3,
+  "session_timestamp": "20260908_153529",
+  "runs": [
+    {
+      "benchmarks_evaluated": [
+        "edge_detection"
+      ],
+      "timestamp": "2026-09-08T15:35:29.327491",
+      "run_iteration": 1,
+      "total_runs": 3,
+      "configs_evaluated": 1,
+      "results": [
+        {
+          "cycles": 150825,
+          "instructions": 150825,
+          "ipc": 1.0,
+          "checksum": 127664,
+          "raw_match": "BENCHMARK_RESULT: cycles=150825 instret=150825 checksum=127664 branches=0 br_misses=0 ic_misses=0 dc_accesses=0 dc_misses=0",
+          "branches": 0,
+          "br_misses": 0,
+          "br_miss_rate_pct": 0.0,
+          "ic_misses": 0,
+          "dc_accesses": 0,
+          "dc_misses": 0,
+          "cache_miss_rate_pct": 0.0,
+          "cache_hit_rate_pct": 100.0,
+          "config": "RocketConfig",
+          "benchmark": "edge_detection",
+          "simulator": "spike",
+          "status": "SUCCESS",
+          "wall_clock_time_sec": 0.011,
+          "return_code": 0,
+          "run_iteration": 1
+        }
+      ]
+    },
+    {
+      "benchmarks_evaluated": [
+        "edge_detection"
+      ],
+      "timestamp": "2026-09-08T15:35:29.340500",
+      "run_iteration": 2,
+      "total_runs": 3,
+      "configs_evaluated": 1,
+      "results": [
+        {
+          "cycles": 150825,
+          "instructions": 150825,
+          "ipc": 1.0,
+          "checksum": 127664,
+          "raw_match": "BENCHMARK_RESULT: cycles=150825 instret=150825 checksum=127664 branches=0 br_misses=0 ic_misses=0 dc_accesses=0 dc_misses=0",
+          "branches": 0,
+          "br_misses": 0,
+          "br_miss_rate_pct": 0.0,
+          "ic_misses": 0,
+          "dc_accesses": 0,
+          "dc_misses": 0,
+          "cache_miss_rate_pct": 0.0,
+          "cache_hit_rate_pct": 100.0,
+          "config": "RocketConfig",
+          "benchmark": "edge_detection",
+          "simulator": "spike",
+          "status": "SUCCESS",
+          "wall_clock_time_sec": 0.0108,
+          "return_code": 0,
+          "run_iteration": 2
+        }
+      ]
+    },
+    {
+      "benchmarks_evaluated": [
+        "edge_detection"
+      ],
+      "timestamp": "2026-09-08T15:35:29.353101",
+      "run_iteration": 3,
+      "total_runs": 3,
+      "configs_evaluated": 1,
+      "results": [
+        {
+          "cycles": 150825,
+          "instructions": 150825,
+          "ipc": 1.0,
+          "checksum": 127664,
+          "raw_match": "BENCHMARK_RESULT: cycles=150825 instret=150825 checksum=127664 branches=0 br_misses=0 ic_misses=0 dc_accesses=0 dc_misses=0",
+          "branches": 0,
+          "br_misses": 0,
+          "br_miss_rate_pct": 0.0,
+          "ic_misses": 0,
+          "dc_accesses": 0,
+          "dc_misses": 0,
+          "cache_miss_rate_pct": 0.0,
+          "cache_hit_rate_pct": 100.0,
+          "config": "RocketConfig",
+          "benchmark": "edge_detection",
+          "simulator": "spike",
+          "status": "SUCCESS",
+          "wall_clock_time_sec": 0.0102,
+          "return_code": 0,
+          "run_iteration": 3
+        }
+      ]
+    }
+  ]
+}

@@ -2,9 +2,9 @@
   "benchmarks_evaluated": [
     "edge_detection"
   ],
-  "timestamp": "2026-09-15T12:59:55.416855",
+  "timestamp": "2026-09-13T14:32:02.519177",
   "run_iteration": 1,
-  "total_runs": 1,
+  "total_runs": 10,
   "configs_evaluated": 24,
   "results": [
     {
@@ -25,7 +25,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 144.8299,
+      "wall_clock_time_sec": 143.0293,
       "return_code": 0,
       "run_iteration": 1
     },
@@ -47,7 +47,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 146.1682,
+      "wall_clock_time_sec": 158.8085,
       "return_code": 0,
       "run_iteration": 1
     },
@@ -69,7 +69,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 160.2377,
+      "wall_clock_time_sec": 156.3409,
       "return_code": 0,
       "run_iteration": 1
     },
@@ -91,7 +91,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 152.5022,
+      "wall_clock_time_sec": 150.4245,
       "return_code": 0,
       "run_iteration": 1
     },
@@ -99,8 +99,8 @@
       "config": "BenchmarkLargeBoomNoL2Config",
       "benchmark": "edge_detection",
       "simulator": "verilator",
-      "status": "NOT_COMPILED",
-      "error": "Verilator executable simulator-chipyard.harness-BenchmarkLargeBoomNoL2Config does not exist. Use --build-missing to compile.",
+      "status": "BUILD_FAILED",
+      "error": "makeScope(Logger.scala:146)\n\tat logger.Logger$.makeScope(Logger.scala:125)\n\tat firrtl.options.Stage.transform(Stage.scala:45)\n\tat firrtl.options.Stage.execute(Stage.scala:56)\n\tat firrtl.options.StageMain.main(Stage.scala:69)\n\tat chipyard.Generator.main(Generator.scala)\nmake: *** [/home/astolfo/chipyard/common.mk:131: /home/astolfo/chipyard/sims/verilator/generated-src/chipyard.harness.TestHarness.BenchmarkLargeBoomNoL2Config/chipyard.harness.TestHarness.BenchmarkLargeBoomNoL2Config.fir] Error 1\n",
       "run_iteration": 1
     },
     {
@@ -121,7 +121,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 157.1355,
+      "wall_clock_time_sec": 157.8486,
       "return_code": 0,
       "run_iteration": 1
     },
@@ -143,7 +143,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 110.636,
+      "wall_clock_time_sec": 110.8556,
       "return_code": 0,
       "run_iteration": 1
     },
@@ -165,7 +165,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 111.8896,
+      "wall_clock_time_sec": 118.7206,
       "return_code": 0,
       "run_iteration": 1
     },
@@ -187,7 +187,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 113.7101,
+      "wall_clock_time_sec": 110.3545,
       "return_code": 0,
       "run_iteration": 1
     },
@@ -209,7 +209,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 110.1417,
+      "wall_clock_time_sec": 112.9775,
       "return_code": 0,
       "run_iteration": 1
     },
@@ -217,8 +217,8 @@
       "config": "BenchmarkMediumBoomNoL2Config",
       "benchmark": "edge_detection",
       "simulator": "verilator",
-      "status": "NOT_COMPILED",
-      "error": "Verilator executable simulator-chipyard.harness-BenchmarkMediumBoomNoL2Config does not exist. Use --build-missing to compile.",
+      "status": "BUILD_FAILED",
+      "error": "keScope(Logger.scala:146)\n\tat logger.Logger$.makeScope(Logger.scala:125)\n\tat firrtl.options.Stage.transform(Stage.scala:45)\n\tat firrtl.options.Stage.execute(Stage.scala:56)\n\tat firrtl.options.StageMain.main(Stage.scala:69)\n\tat chipyard.Generator.main(Generator.scala)\nmake: *** [/home/astolfo/chipyard/common.mk:131: /home/astolfo/chipyard/sims/verilator/generated-src/chipyard.harness.TestHarness.BenchmarkMediumBoomNoL2Config/chipyard.harness.TestHarness.BenchmarkMediumBoomNoL2Config.fir] Error 1\n",
       "run_iteration": 1
     },
     {
@@ -239,7 +239,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 112.3722,
+      "wall_clock_time_sec": 110.1856,
       "return_code": 0,
       "run_iteration": 1
     },
@@ -261,7 +261,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 82.446,
+      "wall_clock_time_sec": 83.0104,
       "return_code": 0,
       "run_iteration": 1
     },
@@ -269,8 +269,8 @@
       "config": "BenchmarkRocketLargeL1Config",
       "benchmark": "edge_detection",
       "simulator": "verilator",
-      "status": "NOT_COMPILED",
-      "error": "Verilator executable simulator-chipyard.harness-BenchmarkRocketLargeL1Config does not exist. Use --build-missing to compile.",
+      "status": "BUILD_FAILED",
+      "error": "makeScope(Logger.scala:146)\n\tat logger.Logger$.makeScope(Logger.scala:125)\n\tat firrtl.options.Stage.transform(Stage.scala:45)\n\tat firrtl.options.Stage.execute(Stage.scala:56)\n\tat firrtl.options.StageMain.main(Stage.scala:69)\n\tat chipyard.Generator.main(Generator.scala)\nmake: *** [/home/astolfo/chipyard/common.mk:131: /home/astolfo/chipyard/sims/verilator/generated-src/chipyard.harness.TestHarness.BenchmarkRocketLargeL1Config/chipyard.harness.TestHarness.BenchmarkRocketLargeL1Config.fir] Error 1\n",
       "run_iteration": 1
     },
     {
@@ -291,7 +291,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 83.4845,
+      "wall_clock_time_sec": 85.2287,
       "return_code": 0,
       "run_iteration": 1
     },
@@ -313,7 +313,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 83.2051,
+      "wall_clock_time_sec": 82.4154,
       "return_code": 0,
       "run_iteration": 1
     },
@@ -321,8 +321,8 @@
       "config": "BenchmarkRocketNoL2Config",
       "benchmark": "edge_detection",
       "simulator": "verilator",
-      "status": "NOT_COMPILED",
-      "error": "Verilator executable simulator-chipyard.harness-BenchmarkRocketNoL2Config does not exist. Use --build-missing to compile.",
+      "status": "BUILD_FAILED",
+      "error": "gger$.makeScope(Logger.scala:146)\n\tat logger.Logger$.makeScope(Logger.scala:125)\n\tat firrtl.options.Stage.transform(Stage.scala:45)\n\tat firrtl.options.Stage.execute(Stage.scala:56)\n\tat firrtl.options.StageMain.main(Stage.scala:69)\n\tat chipyard.Generator.main(Generator.scala)\nmake: *** [/home/astolfo/chipyard/common.mk:131: /home/astolfo/chipyard/sims/verilator/generated-src/chipyard.harness.TestHarness.BenchmarkRocketNoL2Config/chipyard.harness.TestHarness.BenchmarkRocketNoL2Config.fir] Error 1\n",
       "run_iteration": 1
     },
     {
@@ -343,7 +343,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 83.9645,
+      "wall_clock_time_sec": 86.6063,
       "return_code": 0,
       "run_iteration": 1
     },
@@ -365,7 +365,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 102.5187,
+      "wall_clock_time_sec": 102.731,
       "return_code": 0,
       "run_iteration": 1
     },
@@ -387,7 +387,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 109.8612,
+      "wall_clock_time_sec": 110.0378,
       "return_code": 0,
       "run_iteration": 1
     },
@@ -409,7 +409,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 101.9413,
+      "wall_clock_time_sec": 105.767,
       "return_code": 0,
       "run_iteration": 1
     },
@@ -431,7 +431,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 107.225,
+      "wall_clock_time_sec": 105.2213,
       "return_code": 0,
       "run_iteration": 1
     },
@@ -439,8 +439,8 @@
       "config": "BenchmarkSmallBoomNoL2Config",
       "benchmark": "edge_detection",
       "simulator": "verilator",
-      "status": "NOT_COMPILED",
-      "error": "Verilator executable simulator-chipyard.harness-BenchmarkSmallBoomNoL2Config does not exist. Use --build-missing to compile.",
+      "status": "BUILD_FAILED",
+      "error": "makeScope(Logger.scala:146)\n\tat logger.Logger$.makeScope(Logger.scala:125)\n\tat firrtl.options.Stage.transform(Stage.scala:45)\n\tat firrtl.options.Stage.execute(Stage.scala:56)\n\tat firrtl.options.StageMain.main(Stage.scala:69)\n\tat chipyard.Generator.main(Generator.scala)\nmake: *** [/home/astolfo/chipyard/common.mk:131: /home/astolfo/chipyard/sims/verilator/generated-src/chipyard.harness.TestHarness.BenchmarkSmallBoomNoL2Config/chipyard.harness.TestHarness.BenchmarkSmallBoomNoL2Config.fir] Error 1\n",
       "run_iteration": 1
     },
     {
@@ -461,7 +461,7 @@
       "benchmark": "edge_detection",
       "simulator": "verilator",
       "status": "SUCCESS",
-      "wall_clock_time_sec": 100.756,
+      "wall_clock_time_sec": 106.1009,
       "return_code": 0,
       "run_iteration": 1
     }

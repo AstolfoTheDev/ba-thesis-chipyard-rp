@@ -1,0 +1,201 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{cite}
+\usepackage{hyperref}
+
+\begin{document}
+
+\section{Literature Review \& Related Work}
+
+\subsection{Key Literature Sources}
+To establish a foundational background for generating, simulating, and implementing a RISC-V System-on-Chip (SoC) using the Chipyard framework on an FPGA target, key prior works across core hardware generators, simulation environments, and FPGA prototyping flows were reviewed.
+
+\subsubsection{Core Generators and Framework Architecture}
+The foundational architecture of the Chipyard framework is introduced by Amid et al.~\cite{amid2020chipyard}, establishing an integrated agile design environment that unifies core generators, interconnects, and peripheral tools using the Chisel HDL~\cite{bachrach2012chisel}. Central to this ecosystem is the Rocket Chip SoC generator described by Asanovi\'{c} et al.~\cite{asanovic2016rocket}, which provides parameterized single/multicore TileLink-based processor subsystems. For evaluations requiring high-performance out-of-order processing, Celio et al.~\cite{celio2015boom} detailed the Berkeley Out-of-Order Machine (BOOM), offering a configurable open-source superscalar core integrated directly within the Chipyard ecosystem.
+
+\subsubsection{FPGA Emulation, Simulation, and Toolchains}
+System-level verification and hardware prototyping draw heavily on software co-simulation and FPGA acceleration techniques. Fast, cycle-exact C++ model creation via Verilator~\cite{snyder2004verilator} allows for early software validation prior to dynamic hardware synthesis. For FPGA-targeted acceleration, Karandikar et al.~\cite{karandikar2018firesim} introduced FireSim, demonstrating how host-target transformations enable cycle-exact FPGA acceleration for Chipyard-generated RISC-V architectures. Furthermore, resource utilization trade-offs for soft-core processor deployment on FPGAs were contextualized by evaluating open-source microcontroller platforms such as PULPino~\cite{traber2016pulpino}. Finally, the privilege execution levels required for baremetal execution and Supervisor-mode OS booting are anchored in the RISC-V Privileged ISA Specification~\cite{waterman2019riscv}.
+
+\subsection{Comparative Analysis: Chipyard/Chisel Agile Design vs. Traditional Verilog/VHDL Methodologies}
+
+\subsubsection{The Classical Approach: Verilog and VHDL}
+Traditional System-on-Chip development relies heavily on Hardware Description Languages (HDLs) such as Verilog, SystemVerilog, and VHDL. Developed in the 1980s, these languages were originally designed for modeling and simulating discrete logic circuits rather than generating complex, highly parameterizable, multi-core system architectures.
+
+While conventional HDLs offer fine-grained control over gate-level implementation and register-transfer level (RTL) timing, they present several structural limitations when applied to modern heterogenous SoC design:
+
+\begin{itemize}
+    \item \textbf{Limited Abstraction \& Reusability:} Traditional HDLs lack modern software engineering paradigms such as object-oriented programming, parametric polymorphism, and functional metaprogramming. Parameterization in Verilog (\texttt{defparam} / \texttt{parameter}) or VHDL (\texttt{generic}) is often restricted to basic structural values (e.g., bus widths or array depths) and struggles to express complex conditional topologies, such as arbitrary cache hierarchy topologies or dynamic interconnect routing.
+    \item \textbf{Manual Integration Overhead:} In classical workflows, interconnecting processor cores, memory buses (e.g., AXI, AHB), memory management units (MMUs), and peripheral blocks requires manual wiring or rigid, GUI-driven IP integration environments (e.g., AMD Vivado IP Integrator). This process is prone to human error, difficult to version-control, and labor-intensive to refactor across different hardware configurations.
+    \item \textbf{Verification Bottlenecks:} Verification in traditional flows relies on separate hardware verification languages (e.g., SystemVerilog UVM) or C/C++ co-simulation wrappers, creating a disconnect between the design specifications and testbench architectures.
+\end{itemize}
+
+\subsubsection{Agile Hardware Design with Chisel}
+To address the productivity gap in hardware design, Constructing Hardware in a Scala-Embedded Language (\textbf{Chisel}) introduces hardware construction primitives embedded within the high-level Scala programming language. Chisel does not compile directly to gates; instead, it acts as a metaprogramming language that executes Scala code to generate an intermediate representation known as \textbf{FIRRTL} (Flexible Intermediate Representation for RTL), which is subsequently lowered into structural Verilog.
+
+Key architectural advantages provided by Chisel include:
+
+\begin{enumerate}
+    \item \textbf{Object-Oriented \& Functional Metaprogramming:} Designers can leverage abstract classes, traits, and higher-order functions to write hardware design \textit{generators} rather than static \textit{instances}. For example, an arbiter or interconnect crossbar can be procedurally generated based on arbitrary Scala data structures evaluated at compile time.
+    \item \textbf{Type Safety \& Object Parametricity:} Chisel enforces strict type checking during hardware elaboration. Signals, interfaces, and bundled records (e.g., Decoupled interfaces implementing handshake protocols) are verified prior to Verilog generation, eliminating structural configuration errors early in the design cycle.
+    \item \textbf{Intermediate Representation (FIRRTL):} By decoupling the high-level Chisel specification from the target Verilog, FIRRTL enables automated compilation passes. Transformations—such as clock-gating insertion, memory mapping, or instrumentation for FPGA emulation—can be applied programmatically to the FIRRTL AST (Abstract Syntax Tree) without modifying the source design.
+\end{enumerate}
+
+\subsubsection{Integrated Ecosystem: The Chipyard Framework}
+While Chisel provides the design language, \textbf{Chipyard} provides the integrated agile SoC development framework. Chipyard combines a suite of Chisel-based core generators—such as the in-order \textbf{Rocket} core and the out-of-order \textbf{BOOM} (Berkeley Out-of-Order Machine)—alongside TileLink interconnect generators, memory controllers, and peripheral devices into a unified, version-controlled repository.
+
+Compared to traditional Verilog IP integration workflows, Chipyard provides a fundamentally different paradigm, as detailed in Table~\ref{tab:chipyard_vs_verilog}.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Comparison of Traditional Verilog/VHDL Design and Chipyard/Chisel Generator Methodology}
+    \label{tab:chipyard_vs_verilog}
+    \vspace{0.2cm}
+    \small
+    \begin{tabular}{p{0.22\textwidth} p{0.34\textwidth} p{0.36\textwidth}}
+        \toprule
+        \textbf{Dimension} & \textbf{Traditional Verilog / VHDL Design} & \textbf{Chipyard / Chisel Generator Methodology} \\
+        \midrule
+        \textbf{Design Abstraction} & Register-Transfer Level (RTL) netlists / instances & Metaprogrammed hardware \textit{generators} in Scala \\
+        \addlinespace
+        \textbf{System Interconnect} & Manual wiring of AXI/AHB buses or GUI IP Integrators & Programmatically elaborated \textbf{TileLink} / AXI crossbars \\
+        \addlinespace
+        \textbf{Parameterization} & Static macros, localparams, and simple generics & Dynamic Scala-based configuration objects evaluated at elaboration \\
+        \addlinespace
+        \textbf{Target Portability} & Manual adaptation per target board or ASIC process & Uniform elaboration targeting C++ simulators (Verilator), FPGAs, or ASIC tools \\
+        \addlinespace
+        \textbf{Verification Cycle} & UVM / SystemVerilog testbenches, manual simulation setups & Integrated C++ co-simulation (Verilator), QEMU, and FPGA-accelerated FireSim \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsubsection{Trade-offs and Considerations for FPGA Prototyping}
+While Chisel and Chipyard dramatically improve design velocity and architecture-level exploration, transitioning from high-level dynamic generators to physical FPGA deployment introduces specific trade-offs:
+
+\begin{itemize}
+    \item \textbf{Compilation and Elaboration Latency:} Chisel designs require a multi-stage compilation flow ($\text{Scala elaboration} \rightarrow \text{FIRRTL transformations} \rightarrow \text{Verilog generation} \rightarrow \text{Vivado synthesis}$). The elaboration stage can consume significant memory and CPU time for large, heterogeneous multi-core configurations.
+    \item \textbf{Readability of Generated RTL:} The Verilog emitted by the Chisel compiler is machine-generated structural netlist code. While fully functional and synth-ready, debugging post-synthesis timing closure issues or signal routing at the generated Verilog level can be significantly more challenging than in hand-written Verilog.
+    \item \textbf{Resource Utilization Optimization:} Hand-crafted VHDL or Verilog can be micro-optimized for specific FPGA primitives (e.g., direct instantiation of Xilinx DSP48 slices or specialized BRAM configurations). Chisel generators abstract these features away, relying on the FPGA synthesis tool (e.g., Vivado) or specialized memory mapping FIRRTL passes to infer optimal target-specific hardware resources correctly.
+\end{itemize}
+
+\section{Detailed Review of Key Literature Sources}
+
+To support the design, simulation, and implementation methodology of a RISC-V System-on-Chip (SoC) architecture on FPGA, the following key literature sources were evaluated across three foundational pillars: SoC generation frameworks, simulation and FPGA acceleration tools, and privileged software execution architectures.
+
+%-----------------------------------------------------------------------------
+\subsection{Primary SoC Generation \& Ecosystem Frameworks}
+
+\paragraph{Chipyard: Integrated Agile RISC-V SoC Design Environment}
+\begin{itemize}
+    \item \textbf{Citation:} Amid et al. (2020) \cite{amid2020chipyard}
+    \item \textbf{Summary:} Introduces the Chipyard framework, an open-source, agile hardware development environment developed at UC Berkeley. Chipyard integrates core generators (e.g., Rocket, BOOM), domain-specific accelerators (e.g., Hwacha, Gemmini), interconnect generators (TileLink), peripherals, and verification tools into a single, cohesive ecosystem managed via Scala/Chisel and FIRRTL.
+    \item \textbf{Thesis Relevance:} This paper serves as the primary reference for the SoC construction flow. It provides the architectural and toolchain rationale for selecting Chipyard over traditional, manual netlist integration workflows.
+\end{itemize}
+
+\paragraph{The Rocket Chip Generator}
+\begin{itemize}
+    \item \textbf{Citation:} Asanovi\'{c} et al. (2016) \cite{asanovic2016rocket}
+    \item \textbf{Summary:} Describes the Rocket Chip SoC generator written in Chisel. It details the tile-based architecture, the single-issue in-order Rocket core pipeline (RV64IMAFDC), parameterized cache hierarchies (L1 instruction/data caches, L2 inclusive cache), and the TileLink interconnect protocol.
+    \item \textbf{Thesis Relevance:} The Rocket core acts as the baseline core configuration evaluated in this thesis for both baremetal execution and Linux boot flows. Citing this work justifies the microarchitectural parameter choices (e.g., pipeline depth, cache sizing, and ISA extensions).
+\end{itemize}
+
+\paragraph{BOOM: The Berkeley Out-of-Order Machine}
+\begin{itemize}
+    \item \textbf{Citation:} Celio et al. (2015) \cite{celio2015boom}
+    \item \textbf{Summary:} Details the architecture of BOOM, an open-source, physical register-file-based superscalar out-of-order RISC-V core generator written in Chisel. It outlines how BOOM implements speculative execution, register renaming, reorder buffers (ROB), and branch prediction.
+    \item \textbf{Thesis Relevance:} Essential for the comparative performance and resource utilization analysis. It explains the microarchitectural overheads (increased LUT/FF utilization and critical path constraints) observed when contrasting out-of-order execution against baseline in-order pipelines on FPGA targets.
+\end{itemize}
+
+\paragraph{Chisel: Constructing Hardware in a Scala Embedded Language}
+\begin{itemize}
+    \item \textbf{Citation:} Bachrach et al. (2012) \cite{bachrach2012chisel}
+    \item \textbf{Summary:} Introduces Chisel, a hardware construction language embedded in Scala. It explains how high-level programming paradigms—such as object-oriented design, functional metaprogramming, and parameterized types—are used to construct dynamic hardware generators that compile down to FIRRTL intermediate representations and Verilog netlists.
+    \item \textbf{Thesis Relevance:} Provides the foundational hardware language context. This source is used in the literature review to contrast modern object-oriented hardware generation against traditional Verilog/VHDL design methodologies.
+\end{itemize}
+
+%-----------------------------------------------------------------------------
+\subsection{Simulation, Verification, \& FPGA Prototyping}
+
+\paragraph{Verilator: Fast Open-Source C++ HDL Simulator}
+\begin{itemize}
+    \item \textbf{Citation:} Snyder (2004) \cite{snyder2004verilator}
+    \item \textbf{Summary:} Details the internal mechanics of Verilator, an open-source tool that converts Verilog and SystemVerilog specifications into cycle-exact, multithreaded C++ executable models for high-speed software simulation.
+    \item \textbf{Thesis Relevance:} Directly justifies the pre-synthesis software verification flow. It explains why Verilator is leveraged to verify baremetal binaries and software workloads with 100\% cycle-exact fidelity prior to executing long synthesis runs on FPGA hardware.
+\end{itemize}
+
+\paragraph{FireSim: FPGA-Accelerated Cycle-Exact Scale-Out System Simulation}
+\begin{itemize}
+    \item \textbf{Citation:} Karandikar et al. (2018) \cite{karandikar2018firesim}
+    \item \textbf{Summary:} Introduces FireSim, a framework that transforms Chisel/FIRRTL SoC specifications into cycle-exact, FPGA-accelerated simulation models targeting cloud-based or local FPGA hardware.
+    \item \textbf{Thesis Relevance:} Serves as a key theoretical reference for FPGA prototyping methodology, demonstrating how host-target transformations operate within the broader Chipyard toolchain during FPGA deployment.
+\end{itemize}
+
+\paragraph{PULPino: An Open-Source Microcontroller System-on-Chip}
+\begin{itemize}
+    \item \textbf{Citation:} Traber et al. (2016) \cite{traber2016pulpino}
+    \item \textbf{Summary:} Presents PULPino, an open-source single-core microcontroller platform featuring 32-bit RISC-V cores. It provides comparative empirical data regarding maximum clock frequency ($f_{max}$), power consumption, and FPGA resource utilization (LUTs, FFs, BRAMs).
+    \item \textbf{Thesis Relevance:} Provides a comparative reference point in the evaluation section, establishing a baseline to measure the resource footprint and interconnect overheads of 64-bit Chipyard TileLink systems against lightweight microcontroller-class soft cores.
+\end{itemize}
+
+%-----------------------------------------------------------------------------
+\subsection{Software Flow \& Privileged Execution}
+
+\paragraph{The RISC-V Instruction Set Manual, Volume II: Privileged Architecture}
+\begin{itemize}
+    \item \textbf{Citation:} Waterman and Asanovi\'{c} (2019) \cite{waterman2019riscv}
+    \item \textbf{Summary:} Defines the hardware privilege levels of the RISC-V ISA: Machine Mode (M-mode for baremetal/bootloaders), Supervisor Mode (S-mode for OS kernels), and User Mode (U-mode for applications). It specifies virtual memory address translation (Sv39/Sv48), control status registers (CSRs), and trap handling.
+    \item \textbf{Thesis Relevance:} Directly supports the software deployment scope of the thesis. It supplies the theoretical groundwork for executing M-mode baremetal workloads versus booting S-mode operating systems (Linux) requiring an intermediate Supervisor Binary Interface (OpenSBI).
+\end{itemize}
+
+
+
+%=============================================================================
+% BIBLIOGRAPHY / REFERENCES
+%=============================================================================
+\begin{thebibliography}{99}
+
+\bibitem{amid2020chipyard}
+A.~Amid, D.~Biancolin, A.~Gonzalez, K.~Grubb, S.~Karandikar, H.~Liew, A.~Magellan, A.~Ou, N.~Pemberton, A.~Rigge, et~al.,
+\newblock ``Chipyard: Integrated agile RISC-V SoC design environment,''
+\newblock \emph{IEEE Micro}, vol.~40, no.~4, pp. 35--45, 2020.
+
+\bibitem{bachrach2012chisel}
+J.~Bachrach, H.~Vo, B.~Richards, Y.~Lee, A.~Waterman, R.~Avizienis, J.~Wawrzynek, and K.~Asanovi\'{c},
+\newblock ``Chisel: Constructing hardware in a Scala embedded language,''
+\newblock in \emph{Proceedings of the 49th Annual Design Automation Conference (DAC)}, 2012, pp. 1216--1225.
+
+\bibitem{asanovic2016rocket}
+K.~Asanovi\'{c}, R.~Avizienis, J.~Bachrach, S.~Beamer, D.~Biancolin, C.~Celio, H.~Cook, D.~Ditzel, B.~Elies, R.~Gimenez, et~al.,
+\newblock ``The Rocket Chip Generator,''
+\newblock University of California, Berkeley, Tech. Rep. UCB/EECS-2016-17, 2016.
+
+\bibitem{celio2015boom}
+C.~Celio, P.~F. Chiu, B.~Nikolic, D.~Patterson, and K.~Asanovi\'{c},
+\newblock ``BOOM: The Berkeley Out-of-Order Machine,''
+\newblock University of California, Berkeley, Tech. Rep. UCB/EECS-2015-167, 2015.
+
+\bibitem{snyder2004verilator}
+W.~Snyder,
+\newblock ``Verilator: Fast open-source C++ HDL simulator,''
+\newblock \emph{IEEE Design \& Test of Computers}, 2004.
+
+\bibitem{karandikar2018firesim}
+S.~Karandikar, H.~Mao, D.~Kim, D.~Biancolin, A.~Amid, A.~Lee, N.~Pemberton, E.~Amarel, P.~Rigge, K.~Asanovi\'{c}, et~al.,
+\newblock ``FireSim: FPGA-accelerated cycle-exact scale-out system simulation in the public cloud,''
+\newblock in \emph{Proceedings of the 45th Annual International Symposium on Computer Architecture (ISCA)}, 2018, pp. 29--42.
+
+\bibitem{traber2016pulpino}
+A.~Traber, M.~Gautschi, A.~Pullini, P.~D. Schiavone, D.~Rossi, and L.~Benini,
+\newblock ``PULPino: An open-source microcontroller system-on-chip,''
+\newblock in \emph{International Workshop on Power and Timing Modeling, Optimization and Simulation (PATMOS)}, 2016.
+
+\bibitem{waterman2019riscv}
+A.~Waterman and K.~Asanovi\'{c},
+\newblock ``The RISC-V Instruction Set Manual, Volume II: Privileged Architecture, Version 1.11,''
+\newblock \emph{RISC-V Foundation}, Tech. Rep., 2019.
+
+\end{thebibliography}
+
+\end{document}

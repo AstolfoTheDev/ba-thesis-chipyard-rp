@@ -1,0 +1,33 @@
+{
+  "benchmarks_evaluated": [
+    "optical_flow_benchmark"
+  ],
+  "timestamp": "2026-09-08T15:35:34.147777",
+  "run_iteration": 1,
+  "total_runs": 1,
+  "configs_evaluated": 1,
+  "results": [
+    {
+      "cycles": 256857,
+      "instructions": 120940,
+      "ipc": 0.4708,
+      "checksum": 46606,
+      "raw_match": "BENCHMARK_RESULT: cycles=256857 instret=120940 checksum=46606 branches=0 br_misses=0 ic_misses=0 dc_accesses=0 dc_misses=0",
+      "branches": 0,
+      "br_misses": 0,
+      "br_miss_rate_pct": 0.0,
+      "ic_misses": 0,
+      "dc_accesses": 0,
+      "dc_misses": 0,
+      "cache_miss_rate_pct": 0.0,
+      "cache_hit_rate_pct": 100.0,
+      "config": "RocketConfig",
+      "benchmark": "optical_flow_benchmark",
+      "simulator": "verilator",
+      "status": "SUCCESS",
+      "wall_clock_time_sec": 176.2937,
+      "return_code": 0,
+      "run_iteration": 1
+    }
+  ]
+}

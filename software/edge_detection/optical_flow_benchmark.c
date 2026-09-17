@@ -69,8 +69,19 @@ static inline int idx(int x, int y) {
     return y * IMG_WIDTH + x;
 }
 
+#ifdef USE_KODAK_DATA
+#include "optical_flow_data.h"
+#endif
+
 // Generate two video test frames with motion between them
 static void init_input_frames(void) {
+#ifdef USE_KODAK_DATA
+    printf("[INFO] Loading input frames from Kodak Image Dataset...\n");
+    for (int i = 0; i < NPIX; i++) {
+        frame1[i] = kodak_frame1[i];
+        frame2[i] = kodak_frame2[i];
+    }
+#else
     int shift_x = 1;
     int shift_y = 1;
 
@@ -87,6 +98,7 @@ static void init_input_frames(void) {
             frame2[idx(x, y)] = val2;
         }
     }
+#endif
 }
 
 // Lucas-Kanade / Gradient Optical Flow calculation algorithm from nonFunc_assistance

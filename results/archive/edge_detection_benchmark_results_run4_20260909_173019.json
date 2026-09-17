@@ -1,0 +1,209 @@
+{
+  "benchmarks_evaluated": [
+    "edge_detection"
+  ],
+  "timestamp": "2026-09-09T19:40:12.601919",
+  "run_iteration": 4,
+  "total_runs": 10,
+  "configs_evaluated": 24,
+  "results": [
+    {
+      "config": "BenchmarkLargeBoomConfig",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "TIMEOUT",
+      "wall_clock_time_sec": 180.1031,
+      "error": "Execution timed out after 180 seconds",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkLargeBoomLargeL1Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "TIMEOUT",
+      "wall_clock_time_sec": 375.8411,
+      "error": "Execution timed out after 180 seconds",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkLargeBoomLargeL2Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "TIMEOUT",
+      "wall_clock_time_sec": 180.1032,
+      "error": "Execution timed out after 180 seconds",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkLargeBoomMedL1Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "TIMEOUT",
+      "wall_clock_time_sec": 180.103,
+      "error": "Execution timed out after 180 seconds",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkLargeBoomNoL2Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "NOT_COMPILED",
+      "error": "Verilator executable simulator-chipyard.harness-BenchmarkLargeBoomNoL2Config does not exist. Use --build-missing to compile.",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkLargeBoomSmallL1Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "TIMEOUT",
+      "wall_clock_time_sec": 180.0811,
+      "error": "Execution timed out after 180 seconds",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkMediumBoomConfig",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "NOT_COMPILED",
+      "error": "Verilator executable simulator-chipyard.harness-BenchmarkMediumBoomConfig does not exist. Use --build-missing to compile.",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkMediumBoomLargeL1Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "NOT_COMPILED",
+      "error": "Verilator executable simulator-chipyard.harness-BenchmarkMediumBoomLargeL1Config does not exist. Use --build-missing to compile.",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkMediumBoomLargeL2Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "NOT_COMPILED",
+      "error": "Verilator executable simulator-chipyard.harness-BenchmarkMediumBoomLargeL2Config does not exist. Use --build-missing to compile.",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkMediumBoomMedL1Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "NOT_COMPILED",
+      "error": "Verilator executable simulator-chipyard.harness-BenchmarkMediumBoomMedL1Config does not exist. Use --build-missing to compile.",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkMediumBoomNoL2Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "NOT_COMPILED",
+      "error": "Verilator executable simulator-chipyard.harness-BenchmarkMediumBoomNoL2Config does not exist. Use --build-missing to compile.",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkMediumBoomSmallL1Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "NOT_COMPILED",
+      "error": "Verilator executable simulator-chipyard.harness-BenchmarkMediumBoomSmallL1Config does not exist. Use --build-missing to compile.",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkRocketConfig",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "TIMEOUT",
+      "wall_clock_time_sec": 180.0078,
+      "error": "Execution timed out after 180 seconds",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkRocketLargeL1Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "NOT_COMPILED",
+      "error": "Verilator executable simulator-chipyard.harness-BenchmarkRocketLargeL1Config does not exist. Use --build-missing to compile.",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkRocketLargeL2Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "NOT_COMPILED",
+      "error": "Verilator executable simulator-chipyard.harness-BenchmarkRocketLargeL2Config does not exist. Use --build-missing to compile.",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkRocketMedL1Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "NOT_COMPILED",
+      "error": "Verilator executable simulator-chipyard.harness-BenchmarkRocketMedL1Config does not exist. Use --build-missing to compile.",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkRocketNoL2Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "NOT_COMPILED",
+      "error": "Verilator executable simulator-chipyard.harness-BenchmarkRocketNoL2Config does not exist. Use --build-missing to compile.",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkRocketSmallL1Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "NOT_COMPILED",
+      "error": "Verilator executable simulator-chipyard.harness-BenchmarkRocketSmallL1Config does not exist. Use --build-missing to compile.",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkSmallBoomConfig",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "NOT_COMPILED",
+      "error": "Verilator executable simulator-chipyard.harness-BenchmarkSmallBoomConfig does not exist. Use --build-missing to compile.",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkSmallBoomLargeL1Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "NOT_COMPILED",
+      "error": "Verilator executable simulator-chipyard.harness-BenchmarkSmallBoomLargeL1Config does not exist. Use --build-missing to compile.",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkSmallBoomLargeL2Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "NOT_COMPILED",
+      "error": "Verilator executable simulator-chipyard.harness-BenchmarkSmallBoomLargeL2Config does not exist. Use --build-missing to compile.",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkSmallBoomMedL1Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "NOT_COMPILED",
+      "error": "Verilator executable simulator-chipyard.harness-BenchmarkSmallBoomMedL1Config does not exist. Use --build-missing to compile.",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkSmallBoomNoL2Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "NOT_COMPILED",
+      "error": "Verilator executable simulator-chipyard.harness-BenchmarkSmallBoomNoL2Config does not exist. Use --build-missing to compile.",
+      "run_iteration": 4
+    },
+    {
+      "config": "BenchmarkSmallBoomSmallL1Config",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "status": "NOT_COMPILED",
+      "error": "Verilator executable simulator-chipyard.harness-BenchmarkSmallBoomSmallL1Config does not exist. Use --build-missing to compile.",
+      "run_iteration": 4
+    }
+  ]
+}

@@ -8,6 +8,10 @@
 #ifndef IMG_HEIGHT
 #define IMG_HEIGHT 32
 #endif
+
+#ifndef KERNEL_ITERATIONS
+#define KERNEL_ITERATIONS 1
+#endif
 #define NPIX       (IMG_WIDTH * IMG_HEIGHT)
 
 static uint8_t input_image[NPIX];
@@ -141,7 +145,9 @@ int main(void) {
     CSR_READ(mhpmcounter7, start_dc_miss);
 #endif
 
-    run_sobel_edge_detection();
+    for (int iter = 0; iter < KERNEL_ITERATIONS; iter++) {
+        run_sobel_edge_detection();
+    }
 
     // End counter measurement
     uint64_t end_cycles  = read_mcycle();
