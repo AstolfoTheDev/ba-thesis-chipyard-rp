@@ -1,0 +1,40 @@
+% Chapter Template
+
+\chapter{Evaluation Setup}\doublespacing % Main chapter title
+
+\label{Chapter6}
+
+\lhead{Chapter V. \emph{Evaluation Setup}}
+
+\setstretch{1.2}
+
+\begin{table}[t]
+\caption{Experimental parameters used in this thesis.}
+\centering
+\resizebox{0.575\linewidth}{!}{
+\begin{tabular}{l|c|c|c|c|c|c|c}
+\specialrule{.12em}{.05em}{.05em}
+\specialrule{.12em}{.05em}{.05em}
+\multicolumn{2}{c|}{\emph{Parameter}} & \multicolumn{6}{c}{\emph{Values}}\\
+%Representation ID & 01 & 02 & 03 & 04 & 05 & 06 & 07 & 08 & 09 \\
+\specialrule{.12em}{.05em}{.05em}
+\specialrule{.12em}{.05em}{.05em}
+\multirow{4}{*}{$\mathcal{R}$} & \emph{r [pixels]} & 360 & 432 & 540 & 540 & 540 & 720 \\
+& \emph{b [Mbps]} &  0.145 & 0.300 & 0.600 & 0.900 & 1.600 & 2.400 \\
+\cmidrule(lr){2-8}
+& \emph{r [pixels]} & 720 & 1080 & 1080 & 1440 & 2160 & 2160 \\
+& \emph{b [Mbps]} &  3.400 & 4.500 & 5.800 & 8.100 & 11.600 & 16.800\\
+\hline
+\multicolumn{2}{c|}{$\mathcal{C}$} & \multicolumn{6}{c}{\{YUV420, YUV422, YUV444 \} } \\
+\hline
+\multicolumn{2}{c|}{$\mathcal{D}$} & \multicolumn{6}{c}{8, 10}\\
+\hline
+\multicolumn{2}{c|}{\emph{Encoder}} & \multicolumn{6}{c}{\emph{x265 v3.6 [veryslow]}}\\
+\hline
+\multicolumn{2}{c|}{\emph{Decoder}} & \multicolumn{6}{c}{\emph{HM}}\\
+\specialrule{.12em}{.05em}{.05em}
+\specialrule{.12em}{.05em}{.05em}
+\end{tabular}
+}
+\label{tab:exp_par}
+\end{table}

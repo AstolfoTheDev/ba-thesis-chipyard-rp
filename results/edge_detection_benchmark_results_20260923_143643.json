@@ -1,0 +1,36 @@
+{
+  "benchmarks_evaluated": [
+    "edge_detection"
+  ],
+  "timestamp": "2026-09-23T14:36:43.511839",
+  "run_iteration": 1,
+  "total_runs": 1,
+  "configs_evaluated": 1,
+  "threads": 11,
+  "results": [
+    {
+      "cycles": 944463,
+      "instructions": 643814,
+      "ipc": 0.6817,
+      "checksum": 569915,
+      "raw_match": "BENCHMARK_RESULT: cycles=944463 instret=643814 checksum=569915 branches=53878 br_misses=28526 ic_misses=4 dc_accesses=107652 dc_misses=41",
+      "branches": 53878,
+      "br_misses": 28526,
+      "br_miss_rate_pct": 52.95,
+      "ic_misses": 4,
+      "dc_accesses": 107652,
+      "dc_misses": 41,
+      "dc_miss_rate_pct": 0.04,
+      "cache_miss_rate_pct": 0.01,
+      "cache_hit_rate_pct": 99.99,
+      "config": "BenchmarkRocketConfig",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "threads": 11,
+      "status": "SUCCESS",
+      "wall_clock_time_sec": 120.0999,
+      "return_code": 0,
+      "run_iteration": 1
+    }
+  ]
+}

@@ -104,6 +104,40 @@ def find_compiled_verilator_configs():
             compiled.append(config_name)
     return sorted(compiled)
 
+def get_simulator_threads(binary_path):
+    """
+    Inspect the compiled Verilator simulator binary to determine the thread count
+    it was compiled with by checking VTestDriver::threads() const disassembly.
+    Returns thread count (int), or None if detection fails.
+    """
+    if not os.path.exists(binary_path):
+        return None
+    try:
+        proc = subprocess.Popen(
+            ["objdump", "-d", "-C", binary_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True
+        )
+        found_func = False
+        for line in proc.stdout:
+            if "<VTestDriver::threads() const>:" in line or "<_ZNK11VTestDriver7threadsEv>:" in line:
+                found_func = True
+                continue
+            if found_func:
+                m = re.search(r"mov\s+\$0x([0-9a-fA-F]+),%eax", line)
+                if m:
+                    proc.kill()
+                    return int(m.group(1), 16)
+                if "ret" in line:
+                    break
+        proc.stdout.close()
+        proc.wait()
+    except Exception:
+        pass
+    return None
+
+
 def get_gcc_path(env):
     gcc_path = subprocess.run(
         ["which", "riscv64-unknown-elf-gcc"],
@@ -151,33 +185,58 @@ def compile_embench_benchmark(env, bench_name):
     print(f"[+] Successfully compiled: {elf}")
     return elf
 
-def run_verilator_sim(config_name, bench_name, elf_path, env, build_missing=False, timeout=1800):
+def run_verilator_sim(config_name, bench_name, elf_path, env, build_missing=False, timeout=1800, threads=1, rebuild=False):
     """Run benchmark binary on Verilator simulator for given config"""
     sim_binary = os.path.join(VERILATOR_DIR, f"simulator-chipyard.harness-{config_name}")
 
-    if not os.path.exists(sim_binary):
-        if build_missing:
-            print(f"[+] Building Verilator simulator for {config_name} (this may take several minutes)...")
-            build_cmd = ["make", "-C", VERILATOR_DIR, f"CONFIG={config_name}"]
+    # Check existing binary threads if it exists
+    compiled_threads = get_simulator_threads(sim_binary) if os.path.exists(sim_binary) else None
+    threads_mismatch = (compiled_threads is not None and compiled_threads != threads)
+    needs_build = not os.path.exists(sim_binary) or rebuild or (build_missing and threads_mismatch)
+
+    if needs_build:
+        if build_missing or rebuild:
+            rebuild_msg = "Rebuilding" if os.path.exists(sim_binary) else "Building"
+            thread_reason = f" (thread count mismatch: compiled={compiled_threads}, requested={threads})" if threads_mismatch and not rebuild else ""
+            print(f"[+] {rebuild_msg} Verilator simulator for {config_name} with {threads} thread(s){thread_reason} (this may take several minutes)...")
+            
+            if os.path.exists(sim_binary):
+                clean_cmd = ["make", "-C", VERILATOR_DIR, "clean-sim", f"CONFIG={config_name}"]
+                subprocess.run(clean_cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+            build_cmd = [
+                "make", "-C", VERILATOR_DIR,
+                f"CONFIG={config_name}",
+                f"VERILATOR_THREADS={threads}",
+                f"-j{threads}"
+            ]
             b_res = subprocess.run(build_cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             if b_res.returncode != 0 or not os.path.exists(sim_binary):
                 return {
                     "config": config_name,
                     "benchmark": bench_name,
                     "simulator": "verilator",
+                    "threads": threads,
                     "status": "BUILD_FAILED",
                     "error": b_res.stderr[-500:] if b_res.stderr else "Build returned error code"
                 }
+            compiled_threads = get_simulator_threads(sim_binary)
         else:
             return {
                 "config": config_name,
                 "benchmark": bench_name,
                 "simulator": "verilator",
+                "threads": threads,
                 "status": "NOT_COMPILED",
                 "error": f"Verilator executable {os.path.basename(sim_binary)} does not exist. Use --build-missing to compile."
             }
+    elif threads_mismatch:
+        print(f"[!] Warning: {os.path.basename(sim_binary)} was compiled with {compiled_threads} thread(s), but --threads {threads} was requested.")
+        print(f"[!] Simulation will run with {compiled_threads} thread(s). Use --rebuild or --build-missing to recompile with {threads} threads.")
 
-    print(f"[+] Running {bench_name} on {config_name} via Verilator...")
+    active_threads = compiled_threads if compiled_threads is not None else threads
+    thread_str = f" ({active_threads} thread{'s' if active_threads > 1 else ''})"
+    print(f"[+] Running {bench_name} on {config_name} via Verilator{thread_str}...")
     cmd = [sim_binary, elf_path]
     start_time = time.time()
     try:
@@ -190,6 +249,7 @@ def run_verilator_sim(config_name, bench_name, elf_path, env, build_missing=Fals
             "config": config_name,
             "benchmark": bench_name,
             "simulator": "verilator",
+            "threads": active_threads,
             "status": "SUCCESS" if proc.returncode == 0 and result.get("cycles") is not None else "FAILED",
             "wall_clock_time_sec": round(wall_clock_time, 4),
             "return_code": proc.returncode
@@ -201,6 +261,7 @@ def run_verilator_sim(config_name, bench_name, elf_path, env, build_missing=Fals
             "config": config_name,
             "benchmark": bench_name,
             "simulator": "verilator",
+            "threads": active_threads,
             "status": "TIMEOUT",
             "wall_clock_time_sec": round(wall_clock_time, 4),
             "error": f"Execution timed out after {timeout} seconds"
@@ -217,6 +278,7 @@ def run_spike_sim(config_name, bench_name, elf_path, env, timeout=60):
             "config": config_name,
             "benchmark": bench_name,
             "simulator": "spike",
+            "threads": 1,
             "status": "ERROR",
             "error": "Spike executable not found in PATH"
         }
@@ -234,6 +296,7 @@ def run_spike_sim(config_name, bench_name, elf_path, env, timeout=60):
             "config": config_name,
             "benchmark": bench_name,
             "simulator": "spike",
+            "threads": 1,
             "status": "SUCCESS" if proc.returncode == 0 and result.get("cycles") is not None else "FAILED",
             "wall_clock_time_sec": round(wall_clock_time, 4),
             "return_code": proc.returncode
@@ -245,6 +308,7 @@ def run_spike_sim(config_name, bench_name, elf_path, env, timeout=60):
             "config": config_name,
             "benchmark": bench_name,
             "simulator": "spike",
+            "threads": 1,
             "status": "TIMEOUT",
             "wall_clock_time_sec": round(wall_clock_time, 4),
             "error": f"Execution timed out after {timeout} seconds"
@@ -308,14 +372,19 @@ def print_summary_table(results):
     print("\n" + "=" * 135)
     print("EMBENCH-IOT 1.0 BENCHMARK RESULTS SUMMARY")
     print("=" * 135)
-    header = f"{'Config':<20} | {'Benchmark':<16} | {'Simulator':<10} | {'Status':<8} | {'Cycles':<10} | {'IPC':<6} | {'Br Mispred':<10} | {'Cache Hit':<9} | {'Cache Miss':<10} | {'Time (s)':<8}"
+    header = f"{'Config':<20} | {'Benchmark':<16} | {'Simulator':<14} | {'Status':<8} | {'Cycles':<10} | {'IPC':<6} | {'Br Mispred':<10} | {'Cache Hit':<9} | {'Cache Miss':<10} | {'Time (s)':<8}"
     print(header)
     print("-" * 135)
 
     for r in results:
         cfg = r.get("config", "N/A")
         bench = r.get("benchmark", "N/A")
-        sim = r.get("simulator", "N/A")
+        sim_raw = r.get("simulator", "N/A")
+        th = r.get("threads")
+        if sim_raw == "verilator" and th is not None:
+            sim = f"verilator ({th}T)"
+        else:
+            sim = sim_raw
         status = r.get("status", "N/A")
         cycles = str(r.get("cycles")) if r.get("cycles") is not None else "N/A"
         ipc = str(r.get("ipc")) if r.get("ipc") is not None else "N/A"
@@ -325,7 +394,7 @@ def print_summary_table(results):
         cache_hit = f"{r.get('cache_hit_rate_pct', 0.0)}%" if "cache_hit_rate_pct" in r else "N/A"
         cache_miss = f"{r.get('cache_miss_rate_pct', 0.0)}%" if "cache_miss_rate_pct" in r else "N/A"
 
-        print(f"{cfg:<20} | {bench:<16} | {sim:<10} | {status:<8} | {cycles:<10} | {ipc:<6} | {br_miss:<10} | {cache_hit:<9} | {cache_miss:<10} | {wtime:<8}")
+        print(f"{cfg:<20} | {bench:<16} | {sim:<14} | {status:<8} | {cycles:<10} | {ipc:<6} | {br_miss:<10} | {cache_hit:<9} | {cache_miss:<10} | {wtime:<8}")
 
     print("=" * 135 + "\n")
 
@@ -334,12 +403,17 @@ def main():
     parser.add_argument("--benchmark", choices=list(EMBENCH_BENCHMARKS.keys()) + ["all"], default="all", help="Embench benchmark to run (default: all)")
     parser.add_argument("--configs", nargs="+", help="Processor configs to benchmark (default: pre-compiled verilator configs or RocketConfig)")
     parser.add_argument("--simulator", choices=["verilator", "spike", "auto"], default="auto", help="Simulation backend to use")
+    parser.add_argument("-t", "--threads", "--verilator-threads", dest="threads", type=int, default=1, help="Number of threads for Verilator simulation (enables multi-core execution via `--threads N` / VERILATOR_THREADS=N)")
+    parser.add_argument("--rebuild", action="store_true", help="Force rebuild of Verilator simulator binaries (e.g., when changing thread count)")
     parser.add_argument("--output", default=DEFAULT_OUTPUT_JSON, help="Output JSON results file path")
     parser.add_argument("--build-missing", action="store_true", help="Automatically build missing Verilator binaries")
     parser.add_argument("--timeout", type=int, default=180, help="Per-run timeout in seconds")
     parser.add_argument("--list-benchmarks", action="store_true", help="List available Embench-IoT 1.0 benchmarks")
     parser.add_argument("--list-configs", action="store_true", help="List available Scala processor configs")
     args = parser.parse_args()
+
+    if args.threads < 1:
+        parser.error("--threads must be at least 1")
 
     if args.list_benchmarks:
         print("Available Embench-IoT 1.0 Benchmarks:")
@@ -393,10 +467,10 @@ def main():
             if args.simulator == "spike":
                 res = run_spike_sim(config, bench, elf_path, env, timeout=args.timeout)
             elif args.simulator == "verilator":
-                res = run_verilator_sim(config, bench, elf_path, env, build_missing=args.build_missing, timeout=args.timeout)
+                res = run_verilator_sim(config, bench, elf_path, env, build_missing=args.build_missing, timeout=args.timeout, threads=args.threads, rebuild=args.rebuild)
             else: # auto
-                if config in compiled_verilator or args.build_missing:
-                    res = run_verilator_sim(config, bench, elf_path, env, build_missing=args.build_missing, timeout=args.timeout)
+                if config in compiled_verilator or args.build_missing or args.rebuild:
+                    res = run_verilator_sim(config, bench, elf_path, env, build_missing=args.build_missing, timeout=args.timeout, threads=args.threads, rebuild=args.rebuild)
                 else:
                     print(f"[!] Verilator binary not compiled for {config}. Falling back to Spike...")
                     res = run_spike_sim(config, bench, elf_path, env, timeout=args.timeout)
@@ -410,6 +484,7 @@ def main():
         "benchmarks_evaluated": benchmarks_to_run,
         "timestamp": start_timestamp,
         "configs_evaluated": len(target_configs),
+        "threads": args.threads,
         "results": benchmark_results
     }
 

@@ -1,0 +1,22 @@
+{
+  "benchmarks_evaluated": [
+    "fft_benchmark"
+  ],
+  "timestamp": "2026-09-22T18:46:17.927872",
+  "run_iteration": 1,
+  "total_runs": 1,
+  "configs_evaluated": 1,
+  "threads": 11,
+  "results": [
+    {
+      "config": "BenchmarkRocketConfig",
+      "benchmark": "fft_benchmark",
+      "simulator": "verilator",
+      "threads": 11,
+      "status": "TIMEOUT",
+      "wall_clock_time_sec": 180.103,
+      "error": "Execution timed out after 180 seconds",
+      "run_iteration": 1
+    }
+  ]
+}

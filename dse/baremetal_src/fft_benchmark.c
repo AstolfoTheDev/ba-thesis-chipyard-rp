@@ -19,6 +19,31 @@ void _putchar(char c) {
     *txdata = (int)c;
 }
 
+/* FFTW Planner Configuration: Register only the 16-point complex DFT codelet
+   to reduce static binary size from ~740 KiB to ~70 KiB for fast simulation */
+void fftw_configure_planner(void *plnr)
+{
+    struct solvtab_s { void (*reg)(void *); const char *reg_nam; };
+    extern void fftw_solvtab_exec(const struct solvtab_s s[], void *);
+
+#define DECLARE(name) extern void name(void *);
+#define STRINGIZEx(x) #x
+#define STRINGIZE(x) STRINGIZEx(x)
+#define SOLVTAB(s) { s, STRINGIZE(s) },
+#define DO(X) \
+    X(fftw_codelet_n1_16)\
+    /* end DO(X) */
+
+    DO(DECLARE)
+
+    const struct solvtab_s s[] = {
+        DO(SOLVTAB)
+        { 0, 0 }
+    };
+
+    fftw_solvtab_exec(s, plnr);
+}
+
 int main() {
     uart_init();
     

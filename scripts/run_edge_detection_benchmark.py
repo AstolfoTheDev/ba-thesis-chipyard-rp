@@ -88,6 +88,40 @@ def find_compiled_verilator_configs():
             compiled.append(config_name)
     return sorted(compiled)
 
+def get_simulator_threads(binary_path):
+    """
+    Inspect the compiled Verilator simulator binary to determine the thread count
+    it was compiled with by checking VTestDriver::threads() const disassembly.
+    Returns thread count (int), or None if detection fails.
+    """
+    if not os.path.exists(binary_path):
+        return None
+    try:
+        proc = subprocess.Popen(
+            ["objdump", "-d", "-C", binary_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True
+        )
+        found_func = False
+        for line in proc.stdout:
+            if "<VTestDriver::threads() const>:" in line or "<_ZNK11VTestDriver7threadsEv>:" in line:
+                found_func = True
+                continue
+            if found_func:
+                m = re.search(r"mov\s+\$0x([0-9a-fA-F]+),%eax", line)
+                if m:
+                    proc.kill()
+                    return int(m.group(1), 16)
+                if "ret" in line:
+                    break
+        proc.stdout.close()
+        proc.wait()
+    except Exception:
+        pass
+    return None
+
+
 def get_gcc_path(env):
     gcc_path = subprocess.run(
         ["which", "riscv64-unknown-elf-gcc"],
@@ -230,19 +264,22 @@ def resolve_unique_output_path(base_path, run_idx=None, total_runs=1, timestamp_
 
     return candidate_path
 
-def compile_edge_detection(env, width=32, height=32, kernel_iterations=1):
+def compile_edge_detection(env, width=32, height=32, kernel_iterations=1, flush_cache=True, flush_size_kb=256):
     src = os.path.join(BENCHMARKS_DIR, "edge_detection", "edge_detection_benchmark.c")
     elf = os.path.join(BENCHMARKS_DIR, "edge_detection", "edge_detection_benchmark.riscv")
     gcc_path = get_gcc_path(env)
 
     iter_tag = f", {kernel_iterations} iter" if kernel_iterations > 1 else ""
-    print(f"[+] Compiling Edge Detection benchmark source ({width}x{height}{iter_tag}): {src}")
+    flush_tag = f", cache-flush={flush_size_kb}KB" if flush_cache else ", no-flush"
+    print(f"[+] Compiling Edge Detection benchmark source ({width}x{height}{iter_tag}{flush_tag}): {src}")
     cmd = [
         gcc_path,
         "-O2",
         f"-DIMG_WIDTH={width}",
         f"-DIMG_HEIGHT={height}",
         f"-DKERNEL_ITERATIONS={kernel_iterations}",
+        f"-DENABLE_CACHE_FLUSH={1 if flush_cache else 0}",
+        f"-DFLUSH_CACHE_SIZE_KB={flush_size_kb}",
         "-march=rv64gc",
         "-mabi=lp64d",
         "-mcmodel=medany",
@@ -335,7 +372,8 @@ def compile_optical_flow(env, width=32, height=32, use_kodak=True, kodak_id=1, s
 
 def compile_benchmark(env, bench_type="edge_detection", width=32, height=32,
                       kernel_iterations=1, use_kodak=True, kodak_id=1,
-                      shift_x=1, shift_y=1, kodak_pair=None):
+                      shift_x=1, shift_y=1, kodak_pair=None,
+                      flush_cache=True, flush_size_kb=256):
     if bench_type in ["fft", "fft_benchmark"]:
         return compile_fft_benchmark(env)
     elif bench_type in ["optical_flow", "optflow", "optical_flow_benchmark"]:
@@ -343,35 +381,63 @@ def compile_benchmark(env, bench_type="edge_detection", width=32, height=32,
                                     kodak_id=kodak_id, shift_x=shift_x, shift_y=shift_y,
                                     kodak_pair=kodak_pair)
     else:
-        return compile_edge_detection(env, width=width, height=height, kernel_iterations=kernel_iterations)
+        return compile_edge_detection(env, width=width, height=height,
+                                      kernel_iterations=kernel_iterations,
+                                      flush_cache=flush_cache,
+                                      flush_size_kb=flush_size_kb)
 
-def run_verilator_sim(config_name, bench_name, elf_path, env, build_missing=False, timeout=1800):
+def run_verilator_sim(config_name, bench_name, elf_path, env, build_missing=False, timeout=1800, threads=1, rebuild=False):
     """Run benchmark binary on Verilator simulator for given config"""
     sim_binary = os.path.join(VERILATOR_DIR, f"simulator-chipyard.harness-{config_name}")
 
-    if not os.path.exists(sim_binary):
-        if build_missing:
-            print(f"[+] Building Verilator simulator for {config_name} (this may take several minutes)...")
-            build_cmd = ["make", "-C", VERILATOR_DIR, f"CONFIG={config_name}"]
+    # Check existing binary threads if it exists
+    compiled_threads = get_simulator_threads(sim_binary) if os.path.exists(sim_binary) else None
+    threads_mismatch = (compiled_threads is not None and compiled_threads != threads)
+    needs_build = not os.path.exists(sim_binary) or rebuild or (build_missing and threads_mismatch)
+
+    if needs_build:
+        if build_missing or rebuild:
+            rebuild_msg = "Rebuilding" if os.path.exists(sim_binary) else "Building"
+            thread_reason = f" (thread count mismatch: compiled={compiled_threads}, requested={threads})" if threads_mismatch and not rebuild else ""
+            print(f"[+] {rebuild_msg} Verilator simulator for {config_name} with {threads} thread(s){thread_reason} (this may take several minutes)...")
+            
+            if os.path.exists(sim_binary):
+                clean_cmd = ["make", "-C", VERILATOR_DIR, "clean-sim", f"CONFIG={config_name}"]
+                subprocess.run(clean_cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+            build_cmd = [
+                "make", "-C", VERILATOR_DIR,
+                f"CONFIG={config_name}",
+                f"VERILATOR_THREADS={threads}",
+                f"-j{threads}"
+            ]
             b_res = subprocess.run(build_cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             if b_res.returncode != 0 or not os.path.exists(sim_binary):
                 return {
                     "config": config_name,
                     "benchmark": bench_name,
                     "simulator": "verilator",
+                    "threads": threads,
                     "status": "BUILD_FAILED",
                     "error": b_res.stderr[-500:] if b_res.stderr else "Build returned error code"
                 }
+            compiled_threads = get_simulator_threads(sim_binary)
         else:
             return {
                 "config": config_name,
                 "benchmark": bench_name,
                 "simulator": "verilator",
+                "threads": threads,
                 "status": "NOT_COMPILED",
                 "error": f"Verilator executable {os.path.basename(sim_binary)} does not exist. Use --build-missing to compile."
             }
+    elif threads_mismatch:
+        print(f"[!] Warning: {os.path.basename(sim_binary)} was compiled with {compiled_threads} thread(s), but --threads {threads} was requested.")
+        print(f"[!] Simulation will run with {compiled_threads} thread(s). Use --rebuild or --build-missing to recompile with {threads} threads.")
 
-    print(f"[+] Running {bench_name} on {config_name} via Verilator...")
+    active_threads = compiled_threads if compiled_threads is not None else threads
+    thread_str = f" ({active_threads} thread{'s' if active_threads > 1 else ''})"
+    print(f"[+] Running {bench_name} on {config_name} via Verilator{thread_str}...")
     cmd = [sim_binary, elf_path]
     start_time = time.time()
     try:
@@ -384,6 +450,7 @@ def run_verilator_sim(config_name, bench_name, elf_path, env, build_missing=Fals
             "config": config_name,
             "benchmark": bench_name,
             "simulator": "verilator",
+            "threads": active_threads,
             "status": "SUCCESS" if proc.returncode == 0 and result.get("cycles") is not None else "FAILED",
             "wall_clock_time_sec": round(wall_clock_time, 4),
             "return_code": proc.returncode
@@ -395,6 +462,7 @@ def run_verilator_sim(config_name, bench_name, elf_path, env, build_missing=Fals
             "config": config_name,
             "benchmark": bench_name,
             "simulator": "verilator",
+            "threads": active_threads,
             "status": "TIMEOUT",
             "wall_clock_time_sec": round(wall_clock_time, 4),
             "error": f"Execution timed out after {timeout} seconds"
@@ -411,6 +479,7 @@ def run_spike_sim(config_name, bench_name, elf_path, env, timeout=60):
             "config": config_name,
             "benchmark": bench_name,
             "simulator": "spike",
+            "threads": 1,
             "status": "ERROR",
             "error": "Spike executable not found in PATH"
         }
@@ -428,6 +497,7 @@ def run_spike_sim(config_name, bench_name, elf_path, env, timeout=60):
             "config": config_name,
             "benchmark": bench_name,
             "simulator": "spike",
+            "threads": 1,
             "status": "SUCCESS" if proc.returncode == 0 and result.get("cycles") is not None else "FAILED",
             "wall_clock_time_sec": round(wall_clock_time, 4),
             "return_code": proc.returncode
@@ -472,6 +542,12 @@ def parse_benchmark_output(output):
 
             br_miss_rate = round(br_misses / branches * 100, 2) if branches > 0 else 0.0
             
+            # D-Cache miss rate
+            if dc_accesses > 0:
+                dc_miss_rate = round(dc_misses / dc_accesses * 100, 2)
+            else:
+                dc_miss_rate = round(dc_misses / instret * 100, 4) if instret > 0 else 0.0
+
             # Simple combined cache miss rate approximation
             total_accesses = instret + dc_accesses
             total_misses = ic_misses + dc_misses
@@ -487,6 +563,7 @@ def parse_benchmark_output(output):
                 "ic_misses": ic_misses,
                 "dc_accesses": dc_accesses,
                 "dc_misses": dc_misses,
+                "dc_miss_rate_pct": dc_miss_rate,
                 "cache_miss_rate_pct": cache_miss_rate,
                 "cache_hit_rate_pct": cache_hit_rate
             })
@@ -502,29 +579,34 @@ def parse_benchmark_output(output):
 
 def print_summary_table(results):
     """Print ASCII summary table of benchmark results"""
-    print("\n" + "=" * 135)
+    print("\n" + "=" * 144)
     print("BENCHMARK RESULTS SUMMARY")
-    print("=" * 135)
-    header = f"{'Config':<20} | {'Benchmark':<16} | {'Simulator':<10} | {'Status':<8} | {'Cycles':<10} | {'IPC':<6} | {'Br Mispred':<10} | {'Cache Hit':<9} | {'Cache Miss':<10} | {'Time (s)':<8}"
+    print("=" * 144)
+    header = f"{'Config':<32} | {'Benchmark':<14} | {'Simulator':<14} | {'Status':<7} | {'Cycles':<10} | {'IPC':<6} | {'Br Mispred':<10} | {'D$ Misses':<10} | {'I$ Misses':<9} | {'Time (s)':<8}"
     print(header)
-    print("-" * 135)
+    print("-" * 144)
 
     for r in results:
         cfg = r.get("config", "N/A")
         bench = r.get("benchmark", "N/A")
-        sim = r.get("simulator", "N/A")
+        sim_raw = r.get("simulator", "N/A")
+        th = r.get("threads")
+        if sim_raw == "verilator" and th is not None:
+            sim = f"verilator({th}T)"
+        else:
+            sim = sim_raw
         status = r.get("status", "N/A")
         cycles = str(r.get("cycles")) if r.get("cycles") is not None else "N/A"
         ipc = str(r.get("ipc")) if r.get("ipc") is not None else "N/A"
         wtime = str(r.get("wall_clock_time_sec")) if r.get("wall_clock_time_sec") is not None else "N/A"
         
         br_miss = f"{r.get('br_miss_rate_pct', 0.0)}%" if "br_miss_rate_pct" in r else "N/A"
-        cache_hit = f"{r.get('cache_hit_rate_pct', 0.0)}%" if "cache_hit_rate_pct" in r else "N/A"
-        cache_miss = f"{r.get('cache_miss_rate_pct', 0.0)}%" if "cache_miss_rate_pct" in r else "N/A"
+        dc_misses = str(r.get('dc_misses', 'N/A'))
+        ic_misses = str(r.get('ic_misses', 'N/A'))
 
-        print(f"{cfg:<20} | {bench:<16} | {sim:<10} | {status:<8} | {cycles:<10} | {ipc:<6} | {br_miss:<10} | {cache_hit:<9} | {cache_miss:<10} | {wtime:<8}")
+        print(f"{cfg:<32} | {bench:<14} | {sim:<14} | {status:<7} | {cycles:<10} | {ipc:<6} | {br_miss:<10} | {dc_misses:<10} | {ic_misses:<9} | {wtime:<8}")
 
-    print("=" * 135 + "\n")
+    print("=" * 144 + "\n")
 
 def main():
     parser = argparse.ArgumentParser(description="Run benchmark suite across Chipyard processor configs.")
@@ -533,6 +615,8 @@ def main():
     parser.add_argument("--kernel-iterations", type=int, default=1, help="Sobel edge detection inner loop iterations per run (default: 1)")
     parser.add_argument("--configs", nargs="+", help="Processor configs to benchmark (default: pre-compiled verilator configs or RocketConfig)")
     parser.add_argument("--simulator", choices=["verilator", "spike", "auto"], default="auto", help="Simulation backend to use")
+    parser.add_argument("-t", "--threads", "--verilator-threads", dest="threads", type=int, default=1, help="Number of threads for Verilator simulation (enables multi-core execution via `--threads N` / VERILATOR_THREADS=N)")
+    parser.add_argument("--rebuild", action="store_true", help="Force rebuild of Verilator simulator binaries (e.g., when changing thread count)")
     parser.add_argument("--output", default=DEFAULT_OUTPUT_JSON, help="Output JSON results file path")
     parser.add_argument("--overwrite", action="store_true", help="Allow overwriting target output file if it exists (default: False, generates unique name)")
     parser.add_argument("--img-width", type=int, default=32, help="Image width for benchmark (default: 32)")
@@ -542,10 +626,15 @@ def main():
     parser.add_argument("--shift-x", type=int, default=1, help="Horizontal pixel shift for optical flow frame motion (default: 1)")
     parser.add_argument("--shift-y", type=int, default=1, help="Vertical pixel shift for optical flow frame motion (default: 1)")
     parser.add_argument("--synthetic-frames", action="store_true", help="Force synthetic checkerboard frames instead of Kodak images")
+    parser.add_argument("--no-cache-flush", action="store_true", help="Disable cache flush before benchmarking (default: False, cache is flushed)")
+    parser.add_argument("--flush-size-kb", type=int, default=256, help="Cache flush buffer size in KB (default: 256)")
     parser.add_argument("--build-missing", action="store_true", help="Automatically build missing Verilator binaries")
-    parser.add_argument("--timeout", type=int, default=180, help="Per-run timeout in seconds")
+    parser.add_argument("--timeout", type=int, default=300, help="Per-run timeout in seconds (default: 300)")
     parser.add_argument("--list-configs", action="store_true", help="List available Scala processor configs")
     args = parser.parse_args() # --benchmark edge_detection -n 10 --configs BenchmarkConfigs --simulator verilator
+
+    if args.threads < 1:
+        parser.error("--threads must be at least 1")
 
     discovered_configs = discover_scala_configs()
     compiled_verilator = find_compiled_verilator_configs()
@@ -581,7 +670,9 @@ def main():
             kodak_id=args.kodak_id,
             shift_x=args.shift_x,
             shift_y=args.shift_y,
-            kodak_pair=args.kodak_pair
+            kodak_pair=args.kodak_pair,
+            flush_cache=(not args.no_cache_flush),
+            flush_size_kb=args.flush_size_kb
         )
         compiled_elfs[bench] = elf
 
@@ -618,10 +709,10 @@ def main():
                 if args.simulator == "spike":
                     res = run_spike_sim(config, bench, elf_path, env, timeout=args.timeout)
                 elif args.simulator == "verilator":
-                    res = run_verilator_sim(config, bench, elf_path, env, build_missing=args.build_missing, timeout=args.timeout)
+                    res = run_verilator_sim(config, bench, elf_path, env, build_missing=args.build_missing, timeout=args.timeout, threads=args.threads, rebuild=args.rebuild)
                 else: # auto
-                    if config in compiled_verilator or args.build_missing:
-                        res = run_verilator_sim(config, bench, elf_path, env, build_missing=args.build_missing, timeout=args.timeout)
+                    if config in compiled_verilator or args.build_missing or args.rebuild:
+                        res = run_verilator_sim(config, bench, elf_path, env, build_missing=args.build_missing, timeout=args.timeout, threads=args.threads, rebuild=args.rebuild)
                     else:
                         print(f"[!] Verilator binary not compiled for {config}. Falling back to Spike...")
                         res = run_spike_sim(config, bench, elf_path, env, timeout=args.timeout)
@@ -637,6 +728,7 @@ def main():
             "run_iteration": run_idx,
             "total_runs": args.runs,
             "configs_evaluated": len(target_configs),
+            "threads": args.threads,
             "results": benchmark_results
         }
         all_runs_reports.append(json_report)
@@ -665,6 +757,7 @@ def main():
         combined_report = {
             "benchmarks_evaluated": benchmarks_to_run,
             "total_runs": args.runs,
+            "threads": args.threads,
             "session_timestamp": session_timestamp,
             "runs": all_runs_reports
         }

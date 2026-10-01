@@ -1,0 +1,32 @@
+{
+  "benchmarks_evaluated": [
+    "edge_detection"
+  ],
+  "timestamp": "2026-09-23T13:58:04.837428",
+  "run_iteration": 1,
+  "total_runs": 1,
+  "configs_evaluated": 2,
+  "threads": 11,
+  "results": [
+    {
+      "config": "BenchmarkRocketConfig",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "threads": 11,
+      "status": "TIMEOUT",
+      "wall_clock_time_sec": 300.1012,
+      "error": "Execution timed out after 300 seconds",
+      "run_iteration": 1
+    },
+    {
+      "config": "BenchmarkSmallBoomConfig",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "threads": 11,
+      "status": "TIMEOUT",
+      "wall_clock_time_sec": 300.102,
+      "error": "Execution timed out after 300 seconds",
+      "run_iteration": 1
+    }
+  ]
+}

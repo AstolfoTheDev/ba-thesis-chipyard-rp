@@ -1,0 +1,58 @@
+{
+  "benchmarks_evaluated": [
+    "fft_benchmark"
+  ],
+  "timestamp": "2026-09-22T19:38:00.801817",
+  "run_iteration": 1,
+  "total_runs": 1,
+  "configs_evaluated": 2,
+  "threads": 11,
+  "results": [
+    {
+      "cycles": 1318,
+      "instructions": 566,
+      "ipc": 0.4294,
+      "checksum": 414,
+      "raw_match": "BENCHMARK_RESULT: cycles=1318 instret=566 checksum=414 branches=2 br_misses=1 ic_misses=28 dc_accesses=64 dc_misses=5",
+      "branches": 2,
+      "br_misses": 1,
+      "br_miss_rate_pct": 50.0,
+      "ic_misses": 28,
+      "dc_accesses": 64,
+      "dc_misses": 5,
+      "cache_miss_rate_pct": 5.24,
+      "cache_hit_rate_pct": 94.76,
+      "config": "BenchmarkRocketConfig",
+      "benchmark": "fft_benchmark",
+      "simulator": "verilator",
+      "threads": 11,
+      "status": "SUCCESS",
+      "wall_clock_time_sec": 68.5832,
+      "return_code": 0,
+      "run_iteration": 1
+    },
+    {
+      "cycles": 1000,
+      "instructions": 566,
+      "ipc": 0.566,
+      "checksum": 414,
+      "raw_match": "BENCHMARK_RESULT: cycles=1000 instret=566 checksum=414 branches=0 br_misses=0 ic_misses=29 dc_accesses=0 dc_misses=6",
+      "branches": 0,
+      "br_misses": 0,
+      "br_miss_rate_pct": 0.0,
+      "ic_misses": 29,
+      "dc_accesses": 0,
+      "dc_misses": 6,
+      "cache_miss_rate_pct": 6.18,
+      "cache_hit_rate_pct": 93.82,
+      "config": "BenchmarkSmallBoomConfig",
+      "benchmark": "fft_benchmark",
+      "simulator": "verilator",
+      "threads": 11,
+      "status": "SUCCESS",
+      "wall_clock_time_sec": 72.5901,
+      "return_code": 0,
+      "run_iteration": 1
+    }
+  ]
+}

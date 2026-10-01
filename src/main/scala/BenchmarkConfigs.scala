@@ -60,7 +60,7 @@ class BenchmarkRocketConfig extends Config(
 
 /** Rocket Core - No L2 Cache (L1 D$ only) */
 class BenchmarkRocketNoL2Config extends Config(
-  new freechips.rocketchip.subsystem.WithNBanks(0) ++
+  new chipyard.config.WithBroadcastManager ++
   new chipyard.config.WithNPerfCounters(29) ++
   new freechips.rocketchip.rocket.WithNBigCores(1) ++
   new chipyard.config.AbstractConfig
@@ -84,9 +84,9 @@ class BenchmarkRocketMedL1Config extends Config(
   new chipyard.config.AbstractConfig
 )
 
-/** Rocket Core - Large L1 D$ (64 KiB: 128 sets, 8 ways), 512 KiB L2 */
+/** Rocket Core - Large L1 D$ (64 KiB: 64 sets, 16 ways), 512 KiB L2 */
 class BenchmarkRocketLargeL1Config extends Config(
-  new WithL1DCacheSize(sets = 128, ways = 8) ++
+  new WithL1DCacheSize(sets = 64, ways = 16) ++
   new WithL2Cache(capacityKB = 512, ways = 8) ++
   new chipyard.config.WithNPerfCounters(29) ++
   new freechips.rocketchip.rocket.WithNBigCores(1) ++
@@ -115,7 +115,7 @@ class BenchmarkSmallBoomConfig extends Config(
 
 /** Small BOOM Core - No L2 Cache */
 class BenchmarkSmallBoomNoL2Config extends Config(
-  new freechips.rocketchip.subsystem.WithNBanks(0) ++
+  new chipyard.config.WithBroadcastManager ++
   new chipyard.config.WithNPerfCounters(29) ++
   new boom.v3.common.WithNSmallBooms(1) ++
   new chipyard.config.AbstractConfig
@@ -170,7 +170,7 @@ class BenchmarkMediumBoomConfig extends Config(
 
 /** Medium BOOM Core - No L2 Cache */
 class BenchmarkMediumBoomNoL2Config extends Config(
-  new freechips.rocketchip.subsystem.WithNBanks(0) ++
+  new chipyard.config.WithBroadcastManager ++
   new chipyard.config.WithNPerfCounters(29) ++
   new boom.v3.common.WithNMediumBooms(1) ++
   new chipyard.config.AbstractConfig
@@ -226,7 +226,7 @@ class BenchmarkLargeBoomConfig extends Config(
 
 /** Large BOOM Core - No L2 Cache */
 class BenchmarkLargeBoomNoL2Config extends Config(
-  new freechips.rocketchip.subsystem.WithNBanks(0) ++
+  new chipyard.config.WithBroadcastManager ++
   new chipyard.config.WithNPerfCounters(29) ++
   new boom.v3.common.WithNLargeBooms(1) ++
   new chipyard.config.WithSystemBusWidth(128) ++

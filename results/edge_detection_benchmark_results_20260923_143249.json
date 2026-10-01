@@ -1,0 +1,60 @@
+{
+  "benchmarks_evaluated": [
+    "edge_detection"
+  ],
+  "timestamp": "2026-09-23T14:32:49.150244",
+  "run_iteration": 1,
+  "total_runs": 1,
+  "configs_evaluated": 2,
+  "threads": 11,
+  "results": [
+    {
+      "cycles": 221549,
+      "instructions": 150825,
+      "ipc": 0.6808,
+      "checksum": 127664,
+      "raw_match": "BENCHMARK_RESULT: cycles=221549 instret=150825 checksum=127664 branches=12630 br_misses=6741 ic_misses=3 dc_accesses=25220 dc_misses=2",
+      "branches": 12630,
+      "br_misses": 6741,
+      "br_miss_rate_pct": 53.37,
+      "ic_misses": 3,
+      "dc_accesses": 25220,
+      "dc_misses": 2,
+      "dc_miss_rate_pct": 0.01,
+      "cache_miss_rate_pct": 0.0,
+      "cache_hit_rate_pct": 100.0,
+      "config": "BenchmarkRocketConfig",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "threads": 11,
+      "status": "SUCCESS",
+      "wall_clock_time_sec": 48.0102,
+      "return_code": 0,
+      "run_iteration": 1
+    },
+    {
+      "cycles": 153291,
+      "instructions": 150825,
+      "ipc": 0.9839,
+      "checksum": 127664,
+      "raw_match": "BENCHMARK_RESULT: cycles=153291 instret=150825 checksum=127664 branches=0 br_misses=197 ic_misses=4 dc_accesses=0 dc_misses=5",
+      "branches": 0,
+      "br_misses": 197,
+      "br_miss_rate_pct": 0.0,
+      "ic_misses": 4,
+      "dc_accesses": 0,
+      "dc_misses": 5,
+      "dc_miss_rate_pct": 0.0033,
+      "cache_miss_rate_pct": 0.01,
+      "cache_hit_rate_pct": 99.99,
+      "config": "BenchmarkSmallBoomConfig",
+      "benchmark": "edge_detection",
+      "simulator": "verilator",
+      "threads": 11,
+      "status": "SUCCESS",
+      "wall_clock_time_sec": 53.9649,
+      "return_code": 0,
+      "run_iteration": 1
+    }
+  ]
+}

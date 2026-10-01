@@ -12,10 +12,27 @@
 #ifndef KERNEL_ITERATIONS
 #define KERNEL_ITERATIONS 1
 #endif
+
+#ifndef ENABLE_CACHE_FLUSH
+#define ENABLE_CACHE_FLUSH 1
+#endif
+
 #define NPIX       (IMG_WIDTH * IMG_HEIGHT)
 
 static uint8_t input_image[NPIX];
 static uint8_t output_edges[NPIX];
+
+#if ENABLE_CACHE_FLUSH
+static volatile uint8_t evict_buffer[NPIX];
+
+// Evict image cache lines from data cache before the measured benchmark loop
+static void flush_cache(void) {
+    for (size_t i = 0; i < NPIX; i += 64) {
+        evict_buffer[i] = (uint8_t)(i & 0xFF);
+    }
+    __asm__ __volatile__ ("fence" ::: "memory");
+}
+#endif
 
 #define CSR_WRITE(csr, val) \
     __asm__ __volatile__ ("csrw " #csr ", %0" :: "rK"(val))
@@ -118,20 +135,44 @@ int main(void) {
 
     init_input_image();
 
+#if ENABLE_CACHE_FLUSH
+    flush_cache();
+#endif
+
     // Clear mcountinhibit to ensure counters are enabled (it may be uninitialized or disabled by default)
     CSR_WRITE(mcountinhibit, 0);
 
-    // Setup HPM counters for Rocket Chip
-    // mhpmevent3: Branches (EventSet 0, bit 6)
-    CSR_WRITE(mhpmevent3, 0x4000);
-    // mhpmevent4: Branch Mispredictions (EventSet 1, bit 5)
-    CSR_WRITE(mhpmevent4, 0x2001);
-    // mhpmevent5: I$ misses (EventSet 2, bit 0)
-    CSR_WRITE(mhpmevent5, 0x0102);
-    // mhpmevent6: D$ accesses (load/store/amo) (EventSet 0, bits 1,2,3)
-    CSR_WRITE(mhpmevent6, 0x0E00);
-    // mhpmevent7: D$ misses (EventSet 2, bit 1)
-    CSR_WRITE(mhpmevent7, 0x0202);
+    // Read RISC-V Architecture ID (1 = Rocket, 2 = BOOM)
+    uint64_t marchid_val = 0;
+#if __riscv_xlen == 64
+    CSR_READ(marchid, marchid_val);
+#endif
+
+    if (marchid_val == 2) {
+        // BOOM HPE Event Encodings:
+        // mhpmevent3: Branch resolved (EventSet 1, bit 4 -> mask 0x10) -> 0x1001
+        CSR_WRITE(mhpmevent3, 0x1001);
+        // mhpmevent4: Branch Mispredictions (EventSet 1, bit 1 -> mask 0x02) -> 0x0201
+        CSR_WRITE(mhpmevent4, 0x0201);
+        // mhpmevent5: I$ misses (EventSet 2, bit 0 -> mask 0x01) -> 0x0102
+        CSR_WRITE(mhpmevent5, 0x0102);
+        // mhpmevent6: BOOM has no committed load/store counter in HPEs -> 0
+        CSR_WRITE(mhpmevent6, 0x0000);
+        // mhpmevent7: D$ misses (EventSet 2, bit 1 -> mask 0x02) -> 0x0202
+        CSR_WRITE(mhpmevent7, 0x0202);
+    } else {
+        // Rocket Chip HPE Event Encodings:
+        // mhpmevent3: Branches (EventSet 0, bit 6)
+        CSR_WRITE(mhpmevent3, 0x4000);
+        // mhpmevent4: Branch Mispredictions (EventSet 1, bit 5)
+        CSR_WRITE(mhpmevent4, 0x2001);
+        // mhpmevent5: I$ misses (EventSet 2, bit 0)
+        CSR_WRITE(mhpmevent5, 0x0102);
+        // mhpmevent6: D$ accesses (load/store/amo) (EventSet 0, bits 1,2,3)
+        CSR_WRITE(mhpmevent6, 0x0E00);
+        // mhpmevent7: D$ misses (EventSet 2, bit 1)
+        CSR_WRITE(mhpmevent7, 0x0202);
+    }
 
     // Start counter measurement
     uint64_t start_cycles  = read_mcycle();

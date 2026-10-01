@@ -1,0 +1,96 @@
+% Linebreak for URLs that are too long for one line
+\PassOptionsToPackage{hyphens}{url}\usepackage{hyperref}
+
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage[dmyyyy]{datetime}
+\usepackage{setspace}
+% netsoft
+%\usepackage[linesnumbered,ruled,vlined,resetcount,algochapter]{algorithm2e}
+
+% prevent footnotes from spanning over multiple pages
+\interfootnotelinepenalty=10000
+%remove redbox
+\hypersetup{pdfborder=0 0 0}
+
+% Remove indentation for footnote
+\usepackage[hang,flushmargin]{footmisc} 
+
+\renewcommand{\dateseparator}{.}
+
+\input{thesis.sty}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% Define Titlepage Format
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\makeatletter
+\newcommand{\address}[1]{\newcommand{\@address}{#1}}
+\newcommand{\institute}[1]{\newcommand{\@institute}{#1}}
+
+\renewcommand{\maketitle}{
+	\begin{titlepage}
+    \begin{minipage}[t]{0.25\textwidth}
+    \vspace{0pt}
+    \includegraphics[width=\linewidth]{logo_teci.png} % <-- Replace with your actual photo file
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.335\textwidth}
+    \vspace{5em}
+    \includegraphics[width=\linewidth]{BTULogo.png} % <-- Replace with your actual photo file
+\end{minipage}
+\vskip 4em
+		\centering
+		{\large\noindent\ignorespaces\@institute\par}
+        \vskip 4em
+        {\LARGE\noindent\ignorespaces \textsc{Bachelor/Master Thesis}\par}\vskip 2.5em
+		\noindent\rule{\textwidth}{1pt}%		
+		\vspace{0.8\baselineskip}
+		{%
+			\LARGE%
+			\@title%
+		}
+		\vspace{0.4\baselineskip}
+		\noindent\rule{\textwidth}{1pt}        {\large\noindent\ignorespaces\@author\par}\vskip 2.5em
+		
+
+		
+		\vskip 2em
+		
+		
+		%{\Large\textsc{Studium}\par}\vskip 0.1em
+		%{\Large{\vspace{0.4\baselineskip}Doktoratsstudium der Technischen Wissenschaften\\im Dissertationsgebiet Angewandte Informatik}\par}
+		
+		%\vskip 2em
+		
+		
+		
+		\vskip 4em
+        \begin{minipage}{\textwidth}
+			\flushleft\large
+			%\noindent\rule{\columnwidth}{1pt}
+			\textsc{Supervisor}\\
+			\normalsize
+			Name
+		\end{minipage}
+        \vskip 3em
+		\begin{minipage}{0.495\textwidth}
+			\flushleft\large
+			%\noindent\rule{\columnwidth}{1pt}
+			\textsc{1. Examiner}\\
+			\normalsize
+			Name
+		\end{minipage}
+		\begin{minipage}{0.495\textwidth}
+			\flushright\large
+			%\noindent\rule{\columnwidth}{1pt}
+			\textsc{2. Examiner}\\
+			\normalsize
+			Name
+		\end{minipage}
+		\vskip 3em
+		{\normalsize\noindent\ignorespaces\@address, \@date}
+	\end{titlepage}
+}
+\makeatother
+
