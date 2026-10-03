@@ -10,14 +10,21 @@ echo "========================================"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Locate Chipyard root directory
-if [ -f "$SCRIPT_DIR/env.sh" ]; then
-  CHIPYARD_DIR="$SCRIPT_DIR"
-elif [ -f "$SCRIPT_DIR/../env.sh" ]; then
-  CHIPYARD_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-elif [ -f "$SCRIPT_DIR/../chipyard/env.sh" ]; then
-  CHIPYARD_DIR="$(cd "$SCRIPT_DIR/../chipyard" && pwd)"
+if [ -n "$CHIPYARD_DIR" ] && [ -f "$CHIPYARD_DIR/env.sh" ]; then
+  : # Already set
 else
-  CHIPYARD_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+  CUR="$SCRIPT_DIR"
+  CHIPYARD_DIR=""
+  while [ "$CUR" != "/" ] && [ "$CUR" != "." ]; do
+    if [ -f "$CUR/env.sh" ]; then
+      CHIPYARD_DIR="$CUR"
+      break
+    fi
+    CUR="$(dirname "$CUR")"
+  done
+  if [ -z "$CHIPYARD_DIR" ]; then
+    CHIPYARD_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+  fi
 fi
 
 echo " -> Detected Chipyard directory: $CHIPYARD_DIR"
@@ -25,7 +32,12 @@ echo " -> Detected Chipyard directory: $CHIPYARD_DIR"
 # Source Chipyard environment if env.sh exists
 if [ -f "$CHIPYARD_DIR/env.sh" ]; then
   echo " -> Sourcing environment from $CHIPYARD_DIR/env.sh"
-  source "$CHIPYARD_DIR/env.sh"
+  if ! type conda >& /dev/null; then
+    if [ -f "$HOME/miniforge3/etc/profile.d/conda.sh" ]; then
+      source "$HOME/miniforge3/etc/profile.d/conda.sh"
+    fi
+  fi
+  source "$CHIPYARD_DIR/env.sh" || true
 fi
 
 # Ensure riscv64-unknown-elf-gcc is in PATH
@@ -44,34 +56,39 @@ fi
 BUILD_DIR="$SCRIPT_DIR/fftw-3.3.10"
 TAR_FILE="$SCRIPT_DIR/fftw-3.3.10.tar.gz"
 
-# Download FFTW tarball if needed
-if [ ! -f "$TAR_FILE" ] && [ ! -d "$BUILD_DIR" ]; then
-  echo " -> Downloading FFTW 3.3.10..."
-  wget -qnc http://www.fftw.org/fftw-3.3.10.tar.gz -O "$TAR_FILE"
+# Download FFTW tarball if needed (only if prebuilt library is missing)
+if [ ! -f "$SCRIPT_DIR/libfftw3.a" ] && [ ! -f "$CHIPYARD_DIR/generators/ba-thesis-chipyard-rp/software/fft/libfftw3.a" ] && [ ! -d "$BUILD_DIR" ]; then
+  if [ ! -s "$TAR_FILE" ]; then
+    echo " -> Downloading FFTW 3.3.10..."
+    wget -qnc http://www.fftw.org/fftw-3.3.10.tar.gz -O "$TAR_FILE" || rm -f "$TAR_FILE"
+  fi
 fi
 
 # Extract FFTW tarball if needed
-if [ ! -d "$BUILD_DIR" ]; then
+if [ -s "$TAR_FILE" ] && [ ! -d "$BUILD_DIR" ]; then
   echo " -> Extracting FFTW 3.3.10..."
   tar -xzf "$TAR_FILE" -C "$SCRIPT_DIR"
 fi
 
-cd "$BUILD_DIR"
+if [ -d "$BUILD_DIR" ]; then
+  cd "$BUILD_DIR"
 
-# Configure FFTW if not configured yet
-if [ ! -f "config.status" ]; then
-  echo " -> Configuring FFTW for bare-metal RISC-V..."
-  ./configure --host=riscv64-unknown-elf \
-    CC=riscv64-unknown-elf-gcc \
-    CFLAGS="-O2 -mcmodel=medany" \
-    --disable-shared \
-    --enable-static \
-    --disable-threads \
-    --disable-fortran
+  # Configure FFTW if not configured yet
+  if [ ! -f "config.status" ]; then
+    echo " -> Configuring FFTW for bare-metal RISC-V..."
+    ./configure --host=riscv64-unknown-elf \
+      CC=riscv64-unknown-elf-gcc \
+      CFLAGS="-O2 -mcmodel=medany" \
+      --disable-shared \
+      --enable-static \
+      --disable-threads \
+      --disable-fortran
+  fi
+
+  echo " -> Compiling FFTW static library..."
+  make -j$(nproc)
+  cd "$SCRIPT_DIR"
 fi
-
-echo " -> Compiling FFTW static library..."
-make -j$(nproc)
 
 echo "========================================"
 echo " 2. Patching Chipyard Environment..."
@@ -81,11 +98,26 @@ TESTS_DIR="$CHIPYARD_DIR/tests"
 mkdir -p "$TESTS_DIR"
 
 echo " -> Copying FFTW static library and headers to $TESTS_DIR..."
-cp -f .libs/libfftw3.a "$TESTS_DIR/"
-cp -f api/fftw3.h "$TESTS_DIR/"
+if [ -f "$BUILD_DIR/.libs/libfftw3.a" ]; then
+  cp -f "$BUILD_DIR/.libs/libfftw3.a" "$TESTS_DIR/"
+  cp -f "$BUILD_DIR/api/fftw3.h" "$TESTS_DIR/"
+  if [ -d "$CHIPYARD_DIR/generators/ba-thesis-chipyard-rp/software/fft" ]; then
+    cp -f "$BUILD_DIR/.libs/libfftw3.a" "$CHIPYARD_DIR/generators/ba-thesis-chipyard-rp/software/fft/"
+    cp -f "$BUILD_DIR/api/fftw3.h" "$CHIPYARD_DIR/generators/ba-thesis-chipyard-rp/software/fft/"
+  fi
+elif [ -f "$SCRIPT_DIR/libfftw3.a" ]; then
+  cp -f "$SCRIPT_DIR/libfftw3.a" "$TESTS_DIR/"
+  cp -f "$SCRIPT_DIR/fftw3.h" "$TESTS_DIR/"
+elif [ -f "$CHIPYARD_DIR/generators/ba-thesis-chipyard-rp/software/fft/libfftw3.a" ]; then
+  cp -f "$CHIPYARD_DIR/generators/ba-thesis-chipyard-rp/software/fft/libfftw3.a" "$TESTS_DIR/"
+  cp -f "$CHIPYARD_DIR/generators/ba-thesis-chipyard-rp/software/fft/fftw3.h" "$TESTS_DIR/"
+fi
 
 # Copy baremetal sources if present in baremetal_src
 BAREMETAL_SRC="$SCRIPT_DIR/baremetal_src"
+if [ ! -d "$BAREMETAL_SRC" ] && [ -d "$CHIPYARD_DIR/generators/ba-thesis-chipyard-rp/dse/baremetal_src" ]; then
+  BAREMETAL_SRC="$CHIPYARD_DIR/generators/ba-thesis-chipyard-rp/dse/baremetal_src"
+fi
 if [ -d "$BAREMETAL_SRC" ]; then
   echo " -> Copying baremetal sources to $TESTS_DIR..."
   cp -f "$BAREMETAL_SRC"/* "$TESTS_DIR/"
@@ -120,11 +152,11 @@ fi
 
 # Patch Makefile if present
 if [ -f "$MAKEFILE_PATH" ]; then
-  if ! grep -q "\-mcmodel=medany" "$MAKEFILE_PATH"; then
+  if grep -q "^CFLAGS  =" "$MAKEFILE_PATH" && ! grep -q "\-mcmodel=medany" "$MAKEFILE_PATH"; then
     sed -i '/^CFLAGS  =/ s/$/ -mcmodel=medany/' "$MAKEFILE_PATH"
     echo " -> Injected -mcmodel=medany into CFLAGS"
   else
-    echo " -> CFLAGS already patched, skipping."
+    echo " -> CFLAGS already patched or not applicable, skipping."
   fi
 
   if ! grep -q "fft_benchmark.riscv:" "$MAKEFILE_PATH"; then

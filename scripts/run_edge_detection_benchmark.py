@@ -272,6 +272,11 @@ def compile_edge_detection(env, width=32, height=32, kernel_iterations=1, flush_
     iter_tag = f", {kernel_iterations} iter" if kernel_iterations > 1 else ""
     flush_tag = f", cache-flush={flush_size_kb}KB" if flush_cache else ", no-flush"
     print(f"[+] Compiling Edge Detection benchmark source ({width}x{height}{iter_tag}{flush_tag}): {src}")
+    atexit_candidates = [
+        os.path.join(TESTS_DIR, "atexit-workaround.c"),
+        os.path.join(BENCHMARKS_DIR, "common", "atexit-workaround.c")
+    ]
+    atexit_src = next((p for p in atexit_candidates if os.path.exists(p)), None)
     cmd = [
         gcc_path,
         "-O2",
@@ -286,9 +291,13 @@ def compile_edge_detection(env, width=32, height=32, kernel_iterations=1, flush_
         "-specs=htif_nano.specs",
         "-T", os.path.join(TESTS_DIR, "htif.ld"),
         src,
+    ]
+    if atexit_src:
+        cmd.extend([atexit_src, "-Wl,--wrap=atexit"])
+    cmd.extend([
         "-o", elf,
         "-lm"
-    ]
+    ])
 
     res = subprocess.run(cmd, cwd=CHIPYARD_DIR, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if res.returncode != 0:
@@ -303,11 +312,20 @@ def compile_fft_benchmark(env):
     elf = os.path.join(fft_sw_dir, "fft_benchmark.riscv")
     gcc_path = get_gcc_path(env)
 
-    libfftw = os.path.join(fft_sw_dir, "libfftw3.a")
-    if not os.path.exists(libfftw):
-        print(f"[!] Warning: {libfftw} not found. FFT compilation might fail if FFTW is not installed.")
+    libfftw_candidates = [
+        os.path.join(fft_sw_dir, "libfftw3.a"),
+        os.path.join(TESTS_DIR, "libfftw3.a")
+    ]
+    libfftw = next((p for p in libfftw_candidates if os.path.exists(p)), None)
+    if not libfftw:
+        print(f"[!] Warning: libfftw3.a not found in {fft_sw_dir} or {TESTS_DIR}. FFT compilation might fail if FFTW is not installed.")
 
     print(f"[+] Compiling FFTW benchmark source: {src}")
+    atexit_candidates = [
+        os.path.join(TESTS_DIR, "atexit-workaround.c"),
+        os.path.join(BENCHMARKS_DIR, "common", "atexit-workaround.c")
+    ]
+    atexit_src = next((p for p in atexit_candidates if os.path.exists(p)), None)
     cmd = [
         gcc_path,
         "-O2",
@@ -318,11 +336,16 @@ def compile_fft_benchmark(env):
         "-T", os.path.join(TESTS_DIR, "htif.ld"),
         f"-I{fft_sw_dir}",
         src,
+    ]
+    if atexit_src:
+        cmd.extend([atexit_src, "-Wl,--wrap=atexit"])
+    cmd.extend([
         "-o", elf,
         f"-L{fft_sw_dir}",
+        f"-L{TESTS_DIR}",
         "-lfftw3",
         "-lm"
-    ]
+    ])
 
     res = subprocess.run(cmd, cwd=CHIPYARD_DIR, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if res.returncode != 0:
@@ -357,8 +380,15 @@ def compile_optical_flow(env, width=32, height=32, use_kodak=True, kodak_id=1, s
     else:
         print(f"[+] Compiling Optical Flow benchmark with synthetic frames ({width}x{height}): {src}")
 
+    atexit_candidates = [
+        os.path.join(TESTS_DIR, "atexit-workaround.c"),
+        os.path.join(BENCHMARKS_DIR, "common", "atexit-workaround.c")
+    ]
+    atexit_src = next((p for p in atexit_candidates if os.path.exists(p)), None)
+    cmd.append(src)
+    if atexit_src:
+        cmd.extend([atexit_src, "-Wl,--wrap=atexit"])
     cmd.extend([
-        src,
         "-o", elf,
         "-lm"
     ])
