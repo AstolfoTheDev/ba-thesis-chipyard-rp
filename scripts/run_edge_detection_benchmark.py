@@ -7,10 +7,11 @@ This script:
 2. Compiles specified benchmark C programs (Edge Detection, FFTW FFT Benchmark, etc.).
 3. Executes benchmark binaries across specified processor configs (using Verilator or Spike).
 4. Captures cycle count, instruction count, IPC, host wall-clock execution time, HPM metrics, and verification checksum.
-5. Saves the results into a structured JSON benchmark report file.
+5. Saves results as CSV benchmark reports (a separate CSV file per algorithm), placed in a dedicated folder per run, with the input image name added as the first column on the left side.
 """
 
 import argparse
+import csv
 import datetime
 import json
 import os
@@ -36,6 +37,7 @@ VERILATOR_DIR = os.path.join(CHIPYARD_DIR, "sims", "verilator")
 BENCHMARKS_DIR = os.path.join(SUBMODULE_DIR, "software")
 TESTS_DIR = os.path.join(CHIPYARD_DIR, "tests")
 
+DEFAULT_OUTPUT_DIR = os.path.join(SUBMODULE_DIR, "results")
 DEFAULT_OUTPUT_JSON = os.path.join(SUBMODULE_DIR, "results", "edge_detection_benchmark_results.json")
 KODAK_BASE_URL = "https://r0k.us/graphics/kodak/kodak"
 KODAK_CACHE_DIR = os.path.join(BENCHMARKS_DIR, "edge_detection", "kodak_images")
@@ -158,11 +160,11 @@ def download_kodak_image(image_id=1, cache_dir=KODAK_CACHE_DIR):
 
     return local_path
 
-def generate_optical_flow_header(width=32, height=32, kodak_id=1, shift_x=1, shift_y=1, pair=None, dest_header=None):
+def generate_optical_flow_header(width=32, height=32, kodak_id=1, shift_x=1, shift_y=1, pair=None, dest_header=None, image_path=None):
     """
-    Generate optical_flow_data.h from Kodak image(s).
+    Generate optical_flow_data.h from Kodak image(s) or custom image.
     If pair is given (e.g. [1, 2]), frame1 comes from kodim01 and frame2 from kodim02.
-    Otherwise, frame1 is a center crop from kodim{kodak_id} and frame2 is shifted by (shift_x, shift_y).
+    Otherwise, frame1 is a center crop and frame2 is shifted by (shift_x, shift_y).
     """
     if not PIL_AVAILABLE:
         raise RuntimeError("Pillow (PIL) is not installed. Please install pillow (`pip install pillow`) or use `--synthetic-frames`.")
@@ -170,7 +172,18 @@ def generate_optical_flow_header(width=32, height=32, kodak_id=1, shift_x=1, shi
     if dest_header is None:
         dest_header = os.path.join(BENCHMARKS_DIR, "edge_detection", "optical_flow_data.h")
 
-    if pair:
+    if image_path:
+        img = Image.open(image_path).convert("L")
+        orig_w, orig_h = img.size
+        cx, cy = orig_w // 2, orig_h // 2
+        x0 = max(0, min(orig_w - width - abs(shift_x), cx - width // 2))
+        y0 = max(0, min(orig_h - height - abs(shift_y), cy - height // 2))
+        crop1 = img.crop((x0, y0, x0 + width, y0 + height))
+        crop2 = img.crop((x0 + shift_x, y0 + shift_y, x0 + shift_x + width, y0 + shift_y + height))
+        frame1_bytes = list(crop1.tobytes())
+        frame2_bytes = list(crop2.tobytes())
+        desc = f"Input image {os.path.basename(image_path)} (dx={shift_x}, dy={shift_y})"
+    elif pair:
         id1, id2 = pair[0], pair[1]
         p1 = download_kodak_image(id1)
         p2 = download_kodak_image(id2)
@@ -200,7 +213,7 @@ def generate_optical_flow_header(width=32, height=32, kodak_id=1, shift_x=1, shi
     npix = width * height
 
     with open(dest_header, "w", encoding="utf-8") as f:
-        f.write("/* Auto-generated header containing Kodak image frames for Optical Flow Benchmark */\n")
+        f.write("/* Auto-generated header containing image frames for Optical Flow Benchmark */\n")
         f.write("#ifndef OPTICAL_FLOW_DATA_H\n")
         f.write("#define OPTICAL_FLOW_DATA_H\n\n")
         f.write("#include <stdint.h>\n\n")
@@ -227,6 +240,149 @@ def generate_optical_flow_header(width=32, height=32, kodak_id=1, shift_x=1, shi
 
     print(f"[+] Header written to: {dest_header}")
     return dest_header
+
+def generate_edge_detection_header(width=32, height=32, kodak_id=1, image_path=None, dest_header=None):
+    """
+    Generate edge_detection_data.h from Kodak image or custom input image.
+    """
+    if not PIL_AVAILABLE:
+        raise RuntimeError("Pillow (PIL) is not installed. Please install pillow (`pip install pillow`) or use `--synthetic-frames`.")
+
+    if dest_header is None:
+        dest_header = os.path.join(BENCHMARKS_DIR, "edge_detection", "edge_detection_data.h")
+
+    if image_path:
+        img = Image.open(image_path).convert("L").resize((width, height), Image.Resampling.BILINEAR)
+        desc = f"Input image {os.path.basename(image_path)}"
+    else:
+        p = download_kodak_image(kodak_id)
+        img = Image.open(p).convert("L").resize((width, height), Image.Resampling.BILINEAR)
+        desc = f"Kodak image #{kodak_id:02d}"
+
+    frame_bytes = list(img.tobytes())
+    npix = width * height
+
+    print(f"[+] Generating edge detection dataset header ({width}x{height}) using {desc}...")
+    with open(dest_header, "w", encoding="utf-8") as f:
+        f.write("/* Auto-generated header containing image pixels for Edge Detection Benchmark */\n")
+        f.write("#ifndef EDGE_DETECTION_DATA_H\n")
+        f.write("#define EDGE_DETECTION_DATA_H\n\n")
+        f.write("#include <stdint.h>\n\n")
+        f.write("#define USE_KODAK_DATA 1\n")
+        f.write(f"#define KODAK_IMG_WIDTH  {width}\n")
+        f.write(f"#define KODAK_IMG_HEIGHT {height}\n")
+        f.write(f"#define KODAK_NPIX       ({npix})\n\n")
+        f.write(f"/* Image: {desc} */\n")
+        f.write("static const uint8_t kodak_image[KODAK_NPIX] = {\n")
+        for idx in range(0, npix, 16):
+            chunk = frame_bytes[idx:idx+16]
+            f.write("    " + ", ".join(f"{val:3d}" for val in chunk) + ",\n")
+        f.write("};\n\n")
+        f.write("#endif /* EDGE_DETECTION_DATA_H */\n")
+
+    print(f"[+] Header written to: {dest_header}")
+    return dest_header
+
+def get_benchmark_image_name(bench_type, args, resolved_image_name=None):
+    """
+    Determine the image name/identifier to be recorded in the CSV for a given benchmark.
+    """
+    if bench_type in ["fft", "fft_benchmark"]:
+        return "N/A"
+
+    if getattr(args, "synthetic_frames", False):
+        return "synthetic"
+
+    if resolved_image_name:
+        return resolved_image_name
+
+    if getattr(args, "image", None):
+        return os.path.basename(args.image)
+
+    if bench_type in ["optical_flow", "optflow", "optical_flow_benchmark"] and getattr(args, "kodak_pair", None):
+        id1, id2 = args.kodak_pair
+        return f"kodim{id1:02d}.png, kodim{id2:02d}.png"
+
+    kodak_id = getattr(args, "kodak_id", 1)
+    return f"kodim{kodak_id:02d}.png"
+
+CSV_FIELDNAMES = [
+    "image",
+    "config",
+    "benchmark",
+    "simulator",
+    "threads",
+    "status",
+    "cycles",
+    "instructions",
+    "ipc",
+    "branches",
+    "br_misses",
+    "br_miss_rate_pct",
+    "ic_misses",
+    "dc_accesses",
+    "dc_misses",
+    "dc_miss_rate_pct",
+    "cache_miss_rate_pct",
+    "cache_hit_rate_pct",
+    "wall_clock_time_sec",
+    "checksum",
+    "return_code",
+    "run_iteration",
+    "error"
+]
+
+def export_algorithm_csv(csv_path, results_list, image_name):
+    """
+    Export benchmark results for a single algorithm to a CSV file.
+    The image used is added as the first value on the left side.
+    """
+    dir_name = os.path.dirname(os.path.abspath(csv_path))
+    os.makedirs(dir_name, exist_ok=True)
+
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=CSV_FIELDNAMES, extrasaction="ignore")
+        writer.writeheader()
+        for r in results_list:
+            row = dict(r)
+            row["image"] = image_name
+            for k in CSV_FIELDNAMES:
+                if k not in row or row[k] is None:
+                    row[k] = ""
+            writer.writerow(row)
+
+def resolve_run_dir(base_output, run_idx=1, total_runs=1, timestamp_str=None, overwrite=False):
+    """
+    Resolve a unique folder path for a benchmark run iteration.
+    """
+    if base_output.endswith(".json") or base_output.endswith(".csv"):
+        base_dir = os.path.dirname(os.path.abspath(base_output))
+    else:
+        base_dir = os.path.abspath(base_output)
+
+    os.makedirs(base_dir, exist_ok=True)
+
+    if timestamp_str is None:
+        timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    if total_runs > 1:
+        folder_name = f"run{run_idx}_{timestamp_str}"
+    else:
+        folder_name = f"run_{timestamp_str}"
+
+    target_dir = os.path.join(base_dir, folder_name)
+
+    if overwrite and total_runs == 1:
+        os.makedirs(target_dir, exist_ok=True)
+        return target_dir
+
+    counter = 1
+    while os.path.exists(target_dir):
+        target_dir = os.path.join(base_dir, f"{folder_name}_{counter}")
+        counter += 1
+
+    os.makedirs(target_dir, exist_ok=True)
+    return target_dir
 
 def resolve_unique_output_path(base_path, run_idx=None, total_runs=1, timestamp_str=None, overwrite=False, is_combined=False):
     """
@@ -264,22 +420,21 @@ def resolve_unique_output_path(base_path, run_idx=None, total_runs=1, timestamp_
 
     return candidate_path
 
-def compile_edge_detection(env, width=32, height=32, kernel_iterations=1, flush_cache=True, flush_size_kb=256):
+def compile_edge_detection(env, width=32, height=32, kernel_iterations=1,
+                           use_kodak=True, kodak_id=1, image_path=None,
+                           flush_cache=True, flush_size_kb=256):
     src = os.path.join(BENCHMARKS_DIR, "edge_detection", "edge_detection_benchmark.c")
     elf = os.path.join(BENCHMARKS_DIR, "edge_detection", "edge_detection_benchmark.riscv")
+    edge_dir = os.path.join(BENCHMARKS_DIR, "edge_detection")
     gcc_path = get_gcc_path(env)
 
     iter_tag = f", {kernel_iterations} iter" if kernel_iterations > 1 else ""
     flush_tag = f", cache-flush={flush_size_kb}KB" if flush_cache else ", no-flush"
-    print(f"[+] Compiling Edge Detection benchmark source ({width}x{height}{iter_tag}{flush_tag}): {src}")
-    atexit_candidates = [
-        os.path.join(TESTS_DIR, "atexit-workaround.c"),
-        os.path.join(BENCHMARKS_DIR, "common", "atexit-workaround.c")
-    ]
-    atexit_src = next((p for p in atexit_candidates if os.path.exists(p)), None)
+
     cmd = [
         gcc_path,
-        "-O2",
+        "-O3",
+        "-funroll-loops",
         f"-DIMG_WIDTH={width}",
         f"-DIMG_HEIGHT={height}",
         f"-DKERNEL_ITERATIONS={kernel_iterations}",
@@ -290,6 +445,17 @@ def compile_edge_detection(env, width=32, height=32, kernel_iterations=1, flush_
         "-mcmodel=medany",
         "-specs=htif_nano.specs",
         "-T", os.path.join(TESTS_DIR, "htif.ld"),
+        f"-I{edge_dir}"
+    ]
+
+    if use_kodak:
+        generate_edge_detection_header(width=width, height=height, kodak_id=kodak_id, image_path=image_path)
+        cmd.append("-DUSE_KODAK_DATA")
+        print(f"[+] Compiling Edge Detection with dataset image ({width}x{height}{iter_tag}{flush_tag}): {src}")
+    else:
+        print(f"[+] Compiling Edge Detection benchmark with synthetic pattern ({width}x{height}{iter_tag}{flush_tag}): {src}")
+
+    cmd.extend([
         src,
     ]
     if atexit_src:
@@ -354,7 +520,7 @@ def compile_fft_benchmark(env):
     print(f"[+] Successfully compiled: {elf}")
     return elf
 
-def compile_optical_flow(env, width=32, height=32, use_kodak=True, kodak_id=1, shift_x=1, shift_y=1, kodak_pair=None):
+def compile_optical_flow(env, width=32, height=32, use_kodak=True, kodak_id=1, shift_x=1, shift_y=1, kodak_pair=None, image_path=None):
     src = os.path.join(BENCHMARKS_DIR, "edge_detection", "optical_flow_benchmark.c")
     elf = os.path.join(BENCHMARKS_DIR, "edge_detection", "optical_flow_benchmark.riscv")
     gcc_path = get_gcc_path(env)
@@ -374,7 +540,7 @@ def compile_optical_flow(env, width=32, height=32, use_kodak=True, kodak_id=1, s
     ]
 
     if use_kodak:
-        generate_optical_flow_header(width=width, height=height, kodak_id=kodak_id, shift_x=shift_x, shift_y=shift_y, pair=kodak_pair)
+        generate_optical_flow_header(width=width, height=height, kodak_id=kodak_id, shift_x=shift_x, shift_y=shift_y, pair=kodak_pair, image_path=image_path)
         cmd.append("-DUSE_KODAK_DATA")
         print(f"[+] Compiling Optical Flow with Kodak dataset ({width}x{height}): {src}")
     else:
@@ -402,17 +568,20 @@ def compile_optical_flow(env, width=32, height=32, use_kodak=True, kodak_id=1, s
 
 def compile_benchmark(env, bench_type="edge_detection", width=32, height=32,
                       kernel_iterations=1, use_kodak=True, kodak_id=1,
-                      shift_x=1, shift_y=1, kodak_pair=None,
+                      shift_x=1, shift_y=1, kodak_pair=None, image_path=None,
                       flush_cache=True, flush_size_kb=256):
     if bench_type in ["fft", "fft_benchmark"]:
         return compile_fft_benchmark(env)
     elif bench_type in ["optical_flow", "optflow", "optical_flow_benchmark"]:
         return compile_optical_flow(env, width=width, height=height, use_kodak=use_kodak,
                                     kodak_id=kodak_id, shift_x=shift_x, shift_y=shift_y,
-                                    kodak_pair=kodak_pair)
+                                    kodak_pair=kodak_pair, image_path=image_path)
     else:
         return compile_edge_detection(env, width=width, height=height,
                                       kernel_iterations=kernel_iterations,
+                                      use_kodak=use_kodak,
+                                      kodak_id=kodak_id,
+                                      image_path=image_path,
                                       flush_cache=flush_cache,
                                       flush_size_kb=flush_size_kb)
 
@@ -640,28 +809,30 @@ def print_summary_table(results):
 
 def main():
     parser = argparse.ArgumentParser(description="Run benchmark suite across Chipyard processor configs.")
-    parser.add_argument("--benchmark", choices=["edge_detection", "fft", "fft_benchmark", "optical_flow", "optical_flow_benchmark", "all"], default="all", help="Benchmark to run (default: all)")
+    parser.add_argument("--benchmark", "--algorithm", choices=["edge_detection", "fft", "fft_benchmark", "optical_flow", "optical_flow_benchmark", "all"], dest="benchmark", default="all", help="Benchmark/algorithm to run (default: all)")
     parser.add_argument("-n", "--runs", "--iterations", dest="runs", type=int, default=1, help="Number of benchmark evaluation runs to perform (default: 1)")
     parser.add_argument("--kernel-iterations", type=int, default=1, help="Sobel edge detection inner loop iterations per run (default: 1)")
     parser.add_argument("--configs", nargs="+", help="Processor configs to benchmark (default: pre-compiled verilator configs or RocketConfig)")
     parser.add_argument("--simulator", choices=["verilator", "spike", "auto"], default="auto", help="Simulation backend to use")
     parser.add_argument("-t", "--threads", "--verilator-threads", dest="threads", type=int, default=1, help="Number of threads for Verilator simulation (enables multi-core execution via `--threads N` / VERILATOR_THREADS=N)")
     parser.add_argument("--rebuild", action="store_true", help="Force rebuild of Verilator simulator binaries (e.g., when changing thread count)")
-    parser.add_argument("--output", default=DEFAULT_OUTPUT_JSON, help="Output JSON results file path")
-    parser.add_argument("--overwrite", action="store_true", help="Allow overwriting target output file if it exists (default: False, generates unique name)")
+    parser.add_argument("--output", default=DEFAULT_OUTPUT_DIR, help=f"Output directory for benchmark results (default: {DEFAULT_OUTPUT_DIR})")
+    parser.add_argument("--overwrite", action="store_true", help="Allow overwriting target output directory if it exists (default: False, generates unique name)")
+    parser.add_argument("--image", "--image-name", dest="image", default=None, help="Input image file path or Kodak image name (e.g. 'kodim01.png', 'test.jpg')")
     parser.add_argument("--img-width", type=int, default=32, help="Image width for benchmark (default: 32)")
     parser.add_argument("--img-height", type=int, default=32, help="Image height for benchmark (default: 32)")
-    parser.add_argument("--kodak-id", type=int, default=1, help="Kodak suite image ID (1-24) to use for optical flow (default: 1)")
+    parser.add_argument("--kodak-id", type=int, default=1, help="Kodak suite image ID (1-24) to use for dataset frames (default: 1)")
     parser.add_argument("--kodak-pair", type=int, nargs=2, default=None, help="Pair of Kodak image IDs (e.g. 1 2) for optical flow frames")
     parser.add_argument("--shift-x", type=int, default=1, help="Horizontal pixel shift for optical flow frame motion (default: 1)")
     parser.add_argument("--shift-y", type=int, default=1, help="Vertical pixel shift for optical flow frame motion (default: 1)")
-    parser.add_argument("--synthetic-frames", action="store_true", help="Force synthetic checkerboard frames instead of Kodak images")
+    parser.add_argument("--synthetic-frames", action="store_true", help="Force synthetic checkerboard frames instead of Kodak/input images")
     parser.add_argument("--no-cache-flush", action="store_true", help="Disable cache flush before benchmarking (default: False, cache is flushed)")
     parser.add_argument("--flush-size-kb", type=int, default=256, help="Cache flush buffer size in KB (default: 256)")
     parser.add_argument("--build-missing", action="store_true", help="Automatically build missing Verilator binaries")
     parser.add_argument("--timeout", type=int, default=300, help="Per-run timeout in seconds (default: 300)")
+    parser.add_argument("--json", action="store_true", help="Also export JSON reports alongside CSV files")
     parser.add_argument("--list-configs", action="store_true", help="List available Scala processor configs")
-    args = parser.parse_args() # --benchmark edge_detection -n 10 --configs BenchmarkConfigs --simulator verilator
+    args = parser.parse_args()
 
     if args.threads < 1:
         parser.error("--threads must be at least 1")
@@ -688,6 +859,35 @@ def main():
     else:
         benchmarks_to_run = ["edge_detection"]
 
+    # Resolve image path and display name if provided
+    image_path = None
+    resolved_image_name = None
+    if args.image:
+        if os.path.exists(args.image):
+            image_path = os.path.abspath(args.image)
+            resolved_image_name = os.path.basename(args.image)
+        elif os.path.exists(os.path.join(KODAK_CACHE_DIR, args.image)):
+            image_path = os.path.join(KODAK_CACHE_DIR, args.image)
+            resolved_image_name = args.image
+        elif os.path.exists(os.path.join(BENCHMARKS_DIR, "edge_detection", args.image)):
+            image_path = os.path.join(BENCHMARKS_DIR, "edge_detection", args.image)
+            resolved_image_name = args.image
+        elif re.match(r"^kodim(\d+)(?:\.png)?$", args.image, re.IGNORECASE):
+            m = re.match(r"^kodim(\d+)(?:\.png)?$", args.image, re.IGNORECASE)
+            args.kodak_id = int(m.group(1))
+            image_path = download_kodak_image(args.kodak_id)
+            resolved_image_name = f"kodim{args.kodak_id:02d}.png"
+        elif args.image.isdigit():
+            args.kodak_id = int(args.image)
+            image_path = download_kodak_image(args.kodak_id)
+            resolved_image_name = f"kodim{args.kodak_id:02d}.png"
+        else:
+            print(f"[!] Warning: Specified image file '{args.image}' not found! Falling back to Kodak image #{args.kodak_id:02d}")
+            image_path = download_kodak_image(args.kodak_id)
+            resolved_image_name = f"kodim{args.kodak_id:02d}.png"
+    elif not args.synthetic_frames:
+        resolved_image_name = f"kodim{args.kodak_id:02d}.png"
+
     compiled_elfs = {}
     for bench in benchmarks_to_run:
         elf = compile_benchmark(
@@ -701,6 +901,7 @@ def main():
             shift_x=args.shift_x,
             shift_y=args.shift_y,
             kodak_pair=args.kodak_pair,
+            image_path=image_path,
             flush_cache=(not args.no_cache_flush),
             flush_size_kb=args.flush_size_kb
         )
@@ -752,6 +953,22 @@ def main():
 
         print_summary_table(benchmark_results)
 
+        # Resolve dedicated folder for this run
+        run_dir = resolve_run_dir(
+            args.output,
+            run_idx=run_idx,
+            total_runs=args.runs,
+            timestamp_str=session_timestamp,
+            overwrite=args.overwrite
+        )
+
+        # Export a separate CSV file per algorithm into the run folder
+        for bench in benchmarks_to_run:
+            bench_results = [r for r in benchmark_results if r.get("benchmark") == bench]
+            bench_img = get_benchmark_image_name(bench, args, resolved_image_name)
+            csv_path = os.path.join(run_dir, f"{bench}.csv")
+            export_algorithm_csv(csv_path, bench_results, bench_img)
+
         json_report = {
             "benchmarks_evaluated": benchmarks_to_run,
             "timestamp": run_start_timestamp,
@@ -763,37 +980,49 @@ def main():
         }
         all_runs_reports.append(json_report)
 
-        run_output_path = resolve_unique_output_path(
-            args.output,
-            run_idx=run_idx,
-            total_runs=args.runs,
-            timestamp_str=session_timestamp,
-            overwrite=args.overwrite
-        )
+        if args.json:
+            json_path = os.path.join(run_dir, "benchmark_report.json")
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(json_report, f, indent=2)
 
-        with open(run_output_path, "w", encoding="utf-8") as f:
-            json.dump(json_report, f, indent=2)
-
-        print(f"[+] Run {run_idx} results exported to: {run_output_path}")
+        print(f"[+] Run {run_idx} CSV results exported to folder: {run_dir}")
+        for bench in benchmarks_to_run:
+            print(f"    - {bench}: {os.path.join(run_dir, f'{bench}.csv')}")
 
     if args.runs > 1:
-        combined_path = resolve_unique_output_path(
-            args.output,
-            total_runs=args.runs,
-            timestamp_str=session_timestamp,
-            overwrite=args.overwrite,
-            is_combined=True
-        )
-        combined_report = {
-            "benchmarks_evaluated": benchmarks_to_run,
-            "total_runs": args.runs,
-            "threads": args.threads,
-            "session_timestamp": session_timestamp,
-            "runs": all_runs_reports
-        }
-        with open(combined_path, "w", encoding="utf-8") as f:
-            json.dump(combined_report, f, indent=2)
-        print(f"[+] Consolidated all {args.runs} runs exported to: {combined_path}")
+        if args.output.endswith(".json") or args.output.endswith(".csv"):
+            base_dir = os.path.dirname(os.path.abspath(args.output))
+        else:
+            base_dir = os.path.abspath(args.output)
+
+        consolidated_dir = os.path.join(base_dir, f"all_runs_{session_timestamp}")
+        os.makedirs(consolidated_dir, exist_ok=True)
+
+        for bench in benchmarks_to_run:
+            all_bench_results = [
+                r for rep in all_runs_reports
+                for r in rep["results"]
+                if r.get("benchmark") == bench
+            ]
+            bench_img = get_benchmark_image_name(bench, args, resolved_image_name)
+            csv_path = os.path.join(consolidated_dir, f"{bench}.csv")
+            export_algorithm_csv(csv_path, all_bench_results, bench_img)
+
+        if args.json:
+            combined_report = {
+                "benchmarks_evaluated": benchmarks_to_run,
+                "total_runs": args.runs,
+                "threads": args.threads,
+                "session_timestamp": session_timestamp,
+                "runs": all_runs_reports
+            }
+            json_path = os.path.join(consolidated_dir, "benchmark_report_all_runs.json")
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(combined_report, f, indent=2)
+
+        print(f"[+] Consolidated all {args.runs} runs exported to folder: {consolidated_dir}")
+        for bench in benchmarks_to_run:
+            print(f"    - {bench}: {os.path.join(consolidated_dir, f'{bench}.csv')}")
 
 if __name__ == "__main__":
     main()

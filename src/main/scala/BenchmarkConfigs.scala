@@ -53,6 +53,7 @@ class WithL2Cache(capacityKB: Int, ways: Int = 8) extends freechips.rocketchip.s
 
 /** Baseline 1-issue Rocket Core with Hardware Performance Counters */
 class BenchmarkRocketConfig extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new chipyard.config.WithNPerfCounters(29) ++
   new freechips.rocketchip.rocket.WithNBigCores(1) ++
   new chipyard.config.AbstractConfig
@@ -60,6 +61,7 @@ class BenchmarkRocketConfig extends Config(
 
 /** Rocket Core - No L2 Cache (L1 D$ only) */
 class BenchmarkRocketNoL2Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new chipyard.config.WithBroadcastManager ++
   new chipyard.config.WithNPerfCounters(29) ++
   new freechips.rocketchip.rocket.WithNBigCores(1) ++
@@ -68,6 +70,7 @@ class BenchmarkRocketNoL2Config extends Config(
 
 /** Rocket Core - Small L1 D$ (16 KiB: 64 sets, 4 ways), 512 KiB L2 */
 class BenchmarkRocketSmallL1Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new WithL1DCacheSize(sets = 64, ways = 4) ++
   new WithL2Cache(capacityKB = 512, ways = 8) ++
   new chipyard.config.WithNPerfCounters(29) ++
@@ -77,6 +80,7 @@ class BenchmarkRocketSmallL1Config extends Config(
 
 /** Rocket Core - Medium L1 D$ (32 KiB: 64 sets, 8 ways), 512 KiB L2 */
 class BenchmarkRocketMedL1Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new WithL1DCacheSize(sets = 64, ways = 8) ++
   new WithL2Cache(capacityKB = 512, ways = 8) ++
   new chipyard.config.WithNPerfCounters(29) ++
@@ -86,6 +90,7 @@ class BenchmarkRocketMedL1Config extends Config(
 
 /** Rocket Core - Large L1 D$ (64 KiB: 64 sets, 16 ways), 512 KiB L2 */
 class BenchmarkRocketLargeL1Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new WithL1DCacheSize(sets = 64, ways = 16) ++
   new WithL2Cache(capacityKB = 512, ways = 8) ++
   new chipyard.config.WithNPerfCounters(29) ++
@@ -95,6 +100,7 @@ class BenchmarkRocketLargeL1Config extends Config(
 
 /** Rocket Core - Medium L1 D$ (32 KiB), Large 2 MiB (2048 KiB) L2 */
 class BenchmarkRocketLargeL2Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new WithL1DCacheSize(sets = 64, ways = 8) ++
   new WithL2Cache(capacityKB = 2048, ways = 16) ++
   new chipyard.config.WithNPerfCounters(29) ++
@@ -108,6 +114,7 @@ class BenchmarkRocketLargeL2Config extends Config(
 
 /** Baseline 1-wide Small BOOM Core with Hardware Performance Counters */
 class BenchmarkSmallBoomConfig extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new chipyard.config.WithNPerfCounters(29) ++
   new boom.v3.common.WithNSmallBooms(1) ++
   new chipyard.config.AbstractConfig
@@ -115,6 +122,7 @@ class BenchmarkSmallBoomConfig extends Config(
 
 /** Small BOOM Core - No L2 Cache */
 class BenchmarkSmallBoomNoL2Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new chipyard.config.WithBroadcastManager ++
   new chipyard.config.WithNPerfCounters(29) ++
   new boom.v3.common.WithNSmallBooms(1) ++
@@ -123,6 +131,7 @@ class BenchmarkSmallBoomNoL2Config extends Config(
 
 /** Small BOOM Core - Small L1 D$ (16 KiB: 64 sets, 4 ways), 512 KiB L2 */
 class BenchmarkSmallBoomSmallL1Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new WithL1DCacheSize(sets = 64, ways = 4) ++
   new WithL2Cache(capacityKB = 512, ways = 8) ++
   new chipyard.config.WithNPerfCounters(29) ++
@@ -132,6 +141,7 @@ class BenchmarkSmallBoomSmallL1Config extends Config(
 
 /** Small BOOM Core - Medium L1 D$ (32 KiB: 64 sets, 8 ways), 512 KiB L2 */
 class BenchmarkSmallBoomMedL1Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new WithL1DCacheSize(sets = 64, ways = 8) ++
   new WithL2Cache(capacityKB = 512, ways = 8) ++
   new chipyard.config.WithNPerfCounters(29) ++
@@ -141,6 +151,7 @@ class BenchmarkSmallBoomMedL1Config extends Config(
 
 /** Small BOOM Core - Large L1 D$ (64 KiB: 128 sets, 8 ways), 512 KiB L2 */
 class BenchmarkSmallBoomLargeL1Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new WithL1DCacheSize(sets = 128, ways = 8) ++
   new WithL2Cache(capacityKB = 512, ways = 8) ++
   new chipyard.config.WithNPerfCounters(29) ++
@@ -150,6 +161,7 @@ class BenchmarkSmallBoomLargeL1Config extends Config(
 
 /** Small BOOM Core - Medium L1 D$ (32 KiB), Large 2 MiB (2048 KiB) L2 */
 class BenchmarkSmallBoomLargeL2Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new WithL1DCacheSize(sets = 64, ways = 8) ++
   new WithL2Cache(capacityKB = 2048, ways = 16) ++
   new chipyard.config.WithNPerfCounters(29) ++
@@ -163,6 +175,7 @@ class BenchmarkSmallBoomLargeL2Config extends Config(
 
 /** Baseline 2-wide Medium BOOM Core with Hardware Performance Counters */
 class BenchmarkMediumBoomConfig extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new chipyard.config.WithNPerfCounters(29) ++
   new boom.v3.common.WithNMediumBooms(1) ++
   new chipyard.config.AbstractConfig
@@ -170,6 +183,7 @@ class BenchmarkMediumBoomConfig extends Config(
 
 /** Medium BOOM Core - No L2 Cache */
 class BenchmarkMediumBoomNoL2Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new chipyard.config.WithBroadcastManager ++
   new chipyard.config.WithNPerfCounters(29) ++
   new boom.v3.common.WithNMediumBooms(1) ++
@@ -178,6 +192,7 @@ class BenchmarkMediumBoomNoL2Config extends Config(
 
 /** Medium BOOM Core - Small L1 D$ (16 KiB: 64 sets, 4 ways), 512 KiB L2 */
 class BenchmarkMediumBoomSmallL1Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new WithL1DCacheSize(sets = 64, ways = 4) ++
   new WithL2Cache(capacityKB = 512, ways = 8) ++
   new chipyard.config.WithNPerfCounters(29) ++
@@ -187,6 +202,7 @@ class BenchmarkMediumBoomSmallL1Config extends Config(
 
 /** Medium BOOM Core - Medium L1 D$ (32 KiB: 64 sets, 8 ways), 512 KiB L2 */
 class BenchmarkMediumBoomMedL1Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new WithL1DCacheSize(sets = 64, ways = 8) ++
   new WithL2Cache(capacityKB = 512, ways = 8) ++
   new chipyard.config.WithNPerfCounters(29) ++
@@ -196,6 +212,7 @@ class BenchmarkMediumBoomMedL1Config extends Config(
 
 /** Medium BOOM Core - Large L1 D$ (64 KiB: 128 sets, 8 ways), 512 KiB L2 */
 class BenchmarkMediumBoomLargeL1Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new WithL1DCacheSize(sets = 128, ways = 8) ++
   new WithL2Cache(capacityKB = 512, ways = 8) ++
   new chipyard.config.WithNPerfCounters(29) ++
@@ -205,6 +222,7 @@ class BenchmarkMediumBoomLargeL1Config extends Config(
 
 /** Medium BOOM Core - Medium L1 D$ (32 KiB), Large 2 MiB (2048 KiB) L2 */
 class BenchmarkMediumBoomLargeL2Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new WithL1DCacheSize(sets = 64, ways = 8) ++
   new WithL2Cache(capacityKB = 2048, ways = 16) ++
   new chipyard.config.WithNPerfCounters(29) ++
@@ -218,6 +236,7 @@ class BenchmarkMediumBoomLargeL2Config extends Config(
 
 /** Baseline 3-wide Large BOOM Core with Hardware Performance Counters */
 class BenchmarkLargeBoomConfig extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new chipyard.config.WithNPerfCounters(29) ++
   new boom.v3.common.WithNLargeBooms(1) ++
   new chipyard.config.WithSystemBusWidth(128) ++
@@ -226,6 +245,7 @@ class BenchmarkLargeBoomConfig extends Config(
 
 /** Large BOOM Core - No L2 Cache */
 class BenchmarkLargeBoomNoL2Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new chipyard.config.WithBroadcastManager ++
   new chipyard.config.WithNPerfCounters(29) ++
   new boom.v3.common.WithNLargeBooms(1) ++
@@ -235,6 +255,7 @@ class BenchmarkLargeBoomNoL2Config extends Config(
 
 /** Large BOOM Core - Small L1 D$ (16 KiB: 64 sets, 4 ways), 512 KiB L2 */
 class BenchmarkLargeBoomSmallL1Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new WithL1DCacheSize(sets = 64, ways = 4) ++
   new WithL2Cache(capacityKB = 512, ways = 8) ++
   new chipyard.config.WithNPerfCounters(29) ++
@@ -245,6 +266,7 @@ class BenchmarkLargeBoomSmallL1Config extends Config(
 
 /** Large BOOM Core - Medium L1 D$ (32 KiB: 64 sets, 8 ways), 512 KiB L2 */
 class BenchmarkLargeBoomMedL1Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new WithL1DCacheSize(sets = 64, ways = 8) ++
   new WithL2Cache(capacityKB = 512, ways = 8) ++
   new chipyard.config.WithNPerfCounters(29) ++
@@ -255,6 +277,7 @@ class BenchmarkLargeBoomMedL1Config extends Config(
 
 /** Large BOOM Core - Large L1 D$ (64 KiB: 128 sets, 8 ways), 512 KiB L2 */
 class BenchmarkLargeBoomLargeL1Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new WithL1DCacheSize(sets = 128, ways = 8) ++
   new WithL2Cache(capacityKB = 512, ways = 8) ++
   new chipyard.config.WithNPerfCounters(29) ++
@@ -265,6 +288,7 @@ class BenchmarkLargeBoomLargeL1Config extends Config(
 
 /** Large BOOM Core - Large L1 D$ (64 KiB), Large 2 MiB (2048 KiB) L2 */
 class BenchmarkLargeBoomLargeL2Config extends Config(
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new WithL1DCacheSize(sets = 128, ways = 8) ++
   new WithL2Cache(capacityKB = 2048, ways = 16) ++
   new chipyard.config.WithNPerfCounters(29) ++

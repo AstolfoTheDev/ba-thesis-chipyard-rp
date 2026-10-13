@@ -117,6 +117,10 @@
 #define HEIGHT 600
 #define NPIX   (WIDTH * HEIGHT)
 
+static inline int iabs(int x) {
+    return (x < 0) ? -x : x;
+}
+
 // Statische Arrays (liegen im DRAM bzw. im simulierten RAM)
 static uint8_t gray[NPIX];
 static uint8_t edges[NPIX];
@@ -171,7 +175,7 @@ int main() {
                 }
             }
 
-            int magnitude = (int)sqrt((double)(sumX * sumX + sumY * sumY));
+            int magnitude = iabs(sumX) + iabs(sumY);
             if (magnitude > 255) magnitude = 255;
 
             edges[y * WIDTH + x] = (uint8_t)magnitude;

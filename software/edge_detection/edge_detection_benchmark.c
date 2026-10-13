@@ -84,8 +84,17 @@ static inline int iabs(int x) {
     return (x < 0) ? -x : x;
 }
 
-// Generate input test pattern with distinct edges
+#ifdef USE_KODAK_DATA
+#include "edge_detection_data.h"
+#endif
+
+// Generate input test pattern or load dataset image
 static void init_input_image(void) {
+#ifdef USE_KODAK_DATA
+    for (int i = 0; i < NPIX; i++) {
+        input_image[i] = kodak_image[i];
+    }
+#else
     for (int y = 0; y < IMG_HEIGHT; y++) {
         for (int x = 0; x < IMG_WIDTH; x++) {
             if (((x / 8) + (y / 8)) % 2 == 0) {
@@ -95,40 +104,42 @@ static void init_input_image(void) {
             }
         }
     }
+#endif
 }
 
-// Sobel Edge Detection kernel execution
+// Sobel Edge Detection kernel execution (optimized with column sliding window)
 static void run_sobel_edge_detection(void) {
-    const int Gx[3][3] = {
-        {-1, 0, 1},
-        {-2, 0, 2},
-        {-1, 0, 1}
-    };
-    const int Gy[3][3] = {
-        {-1, -2, -1},
-        { 0,  0,  0},
-        { 1,  2,  1}
-    };
-
     for (int y = 1; y < IMG_HEIGHT - 1; y++) {
-        for (int x = 1; x < IMG_WIDTH - 1; x++) {
-            int sumX = 0;
-            int sumY = 0;
+        const uint8_t *r0 = &input_image[(y - 1) * IMG_WIDTH];
+        const uint8_t *r1 = &input_image[y * IMG_WIDTH];
+        const uint8_t *r2 = &input_image[(y + 1) * IMG_WIDTH];
+        uint8_t *out_row  = &output_edges[y * IMG_WIDTH];
 
-            for (int ky = -1; ky <= 1; ky++) {
-                for (int kx = -1; kx <= 1; kx++) {
-                    int pixel = input_image[(y + ky) * IMG_WIDTH + (x + kx)];
-                    sumX += pixel * Gx[ky + 1][kx + 1];
-                    sumY += pixel * Gy[ky + 1][kx + 1];
-                }
-            }
+        int prev_diff = (int)r2[0] - (int)r0[0];
+        int prev_sum  = (int)r0[0] + ((int)r1[0] << 1) + (int)r2[0];
+
+        int curr_diff = (int)r2[1] - (int)r0[1];
+        int curr_sum  = (int)r0[1] + ((int)r1[1] << 1) + (int)r2[1];
+
+        for (int x = 1; x < IMG_WIDTH - 1; x++) {
+            int next_diff = (int)r2[x + 1] - (int)r0[x + 1];
+            int next_sum  = (int)r0[x + 1] + ((int)r1[x + 1] << 1) + (int)r2[x + 1];
+
+            int sumX = next_sum - prev_sum;
+            int sumY = prev_diff + (curr_diff << 1) + next_diff;
 
             int mag = iabs(sumX) + iabs(sumY);
             if (mag > 255) mag = 255;
-            output_edges[y * IMG_WIDTH + x] = (uint8_t)mag;
+            out_row[x] = (uint8_t)mag;
+
+            prev_diff = curr_diff;
+            curr_diff = next_diff;
+            prev_sum  = curr_sum;
+            curr_sum  = next_sum;
         }
     }
 }
+
 
 int main(void) {
     printf("[INFO] Starting Sobel Edge Detection Benchmark (%dx%d)...\n", IMG_WIDTH, IMG_HEIGHT);

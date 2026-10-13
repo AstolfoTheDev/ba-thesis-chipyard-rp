@@ -1,4 +1,4 @@
-/* Auto-generated header containing Kodak image frames for Optical Flow Benchmark */
+/* Auto-generated header containing image frames for Optical Flow Benchmark */
 #ifndef OPTICAL_FLOW_DATA_H
 #define OPTICAL_FLOW_DATA_H
 
