@@ -283,6 +283,211 @@ def generate_edge_detection_header(width=32, height=32, kodak_id=1, image_path=N
     print(f"[+] Header written to: {dest_header}")
     return dest_header
 
+IMAGE_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.bmp', '.ppm', '.pgm', '.tif', '.tiff', '.webp')
+
+def natural_sort_key(s):
+    """Sort strings containing numbers in natural numeric order."""
+    return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
+
+def find_images_in_dir(directory):
+    """Find all image files in a directory sorted naturally."""
+    if not os.path.exists(directory) or not os.path.isdir(directory):
+        return []
+    files = []
+    for f in os.listdir(directory):
+        if f.lower().endswith(IMAGE_EXTENSIONS):
+            files.append(os.path.join(directory, f))
+    files.sort(key=lambda p: natural_sort_key(os.path.basename(p)))
+    return files
+
+def parse_range_spec(spec, allow_single_as_range=False):
+    """
+    Parses range specification from CLI args into (start_idx, end_idx) 1-based integers.
+    Accepts:
+      ['1', '5']                 -> (1, 5)
+      ['1-5'] / ['1..5'] / ['1:5'] -> (1, 5)
+      ['kodim01', 'kodim05']     -> (1, 5)
+      ['kodim01..kodim05']       -> (1, 5)
+      ['5']                      -> (1, 5) if allow_single_as_range else None
+    """
+    if not spec:
+        return None
+    if isinstance(spec, (list, tuple)):
+        if len(spec) == 2:
+            s1 = re.sub(r'^[^\d]*', '', str(spec[0]))
+            s2 = re.sub(r'^[^\d]*', '', str(spec[1]))
+            if s1.isdigit() and s2.isdigit():
+                start, end = int(s1), int(s2)
+                return (min(start, end), max(start, end))
+        raw = " ".join(str(x) for x in spec)
+    else:
+        raw = str(spec)
+
+    raw = raw.strip()
+    m = re.match(r'^(?:kodim)?(\d+)\s*(?:-|\.\.|\:|\s+)\s*(?:kodim)?(\d+)$', raw, re.IGNORECASE)
+    if m:
+        start, end = int(m.group(1)), int(m.group(2))
+        return (min(start, end), max(start, end))
+
+    if allow_single_as_range:
+        m_single = re.match(r'^(?:kodim)?(\d+)$', raw, re.IGNORECASE)
+        if m_single and int(m_single.group(1)) > 1:
+            return (1, int(m_single.group(1)))
+    return None
+
+def resolve_single_image(item, image_dir=None):
+    """Resolve a single image specification to (image_path, display_name, kodak_id)"""
+    if not item:
+        return None, None, None
+
+    if os.path.exists(item) and not os.path.isdir(item):
+        return os.path.abspath(item), os.path.basename(item), None
+
+    if image_dir and os.path.exists(os.path.join(image_dir, item)) and not os.path.isdir(os.path.join(image_dir, item)):
+        p = os.path.abspath(os.path.join(image_dir, item))
+        return p, os.path.basename(p), None
+
+    if os.path.exists(os.path.join(KODAK_CACHE_DIR, item)) and not os.path.isdir(os.path.join(KODAK_CACHE_DIR, item)):
+        p = os.path.abspath(os.path.join(KODAK_CACHE_DIR, item))
+        m = re.match(r"^kodim(\d+)\.png$", item, re.IGNORECASE)
+        kid = int(m.group(1)) if m else None
+        return p, item, kid
+
+    if os.path.exists(os.path.join(BENCHMARKS_DIR, "edge_detection", item)) and not os.path.isdir(os.path.join(BENCHMARKS_DIR, "edge_detection", item)):
+        p = os.path.abspath(os.path.join(BENCHMARKS_DIR, "edge_detection", item))
+        return p, item, None
+
+    m = re.match(r"^kodim(\d+)(?:\.png)?$", item, re.IGNORECASE)
+    if m:
+        kid = int(m.group(1))
+        p = download_kodak_image(kid)
+        return p, f"kodim{kid:02d}.png", kid
+
+    if item.isdigit():
+        kid = int(item)
+        p = download_kodak_image(kid)
+        return p, f"kodim{kid:02d}.png", kid
+
+    print(f"[!] Warning: Specified image file '{item}' not found! Falling back to Kodak image #01")
+    p = download_kodak_image(1)
+    return p, "kodim01.png", 1
+
+def resolve_edge_detection_images(args):
+    """
+    Resolve the sequence of images to be used for the edge detection benchmark.
+    Returns a list of dicts: [{'path': ..., 'display_name': ..., 'kodak_id': ...}, ...]
+    """
+    if getattr(args, "synthetic_frames", False):
+        return [{"path": None, "display_name": "synthetic", "kodak_id": None}]
+
+    img_dir = None
+    input_image = getattr(args, "image", None)
+
+    if getattr(args, "image_dir", None):
+        if os.path.exists(args.image_dir) and os.path.isdir(args.image_dir):
+            img_dir = os.path.abspath(args.image_dir)
+        elif os.path.exists(os.path.join(BENCHMARKS_DIR, "edge_detection", args.image_dir)) and os.path.isdir(os.path.join(BENCHMARKS_DIR, "edge_detection", args.image_dir)):
+            img_dir = os.path.abspath(os.path.join(BENCHMARKS_DIR, "edge_detection", args.image_dir))
+        else:
+            print(f"[!] Warning: Specified --image-dir '{args.image_dir}' does not exist or is not a directory!")
+    elif input_image and os.path.isdir(input_image):
+        img_dir = os.path.abspath(input_image)
+        input_image = None
+    elif input_image and os.path.isdir(os.path.join(BENCHMARKS_DIR, "edge_detection", input_image)):
+        img_dir = os.path.abspath(os.path.join(BENCHMARKS_DIR, "edge_detection", input_image))
+        input_image = None
+
+    range_spec = None
+    if getattr(args, "image_range", None):
+        range_spec = parse_range_spec(args.image_range, allow_single_as_range=True)
+    elif getattr(args, "kodak_range", None):
+        range_spec = parse_range_spec(args.kodak_range, allow_single_as_range=True)
+    elif input_image:
+        range_spec = parse_range_spec(input_image, allow_single_as_range=False)
+
+    # 1. Range specified
+    if range_spec:
+        start_val, end_val = range_spec
+
+        # Custom folder specified
+        if img_dir:
+            folder_imgs = find_images_in_dir(img_dir)
+            if not folder_imgs and os.path.abspath(img_dir) == os.path.abspath(KODAK_CACHE_DIR):
+                # Empty Kodak cache dir, download Kodak range
+                start_id = max(1, min(24, start_val))
+                end_id = max(1, min(24, end_val))
+                print(f"[+] Selected Kodak suite image range [kodim{start_id:02d}..kodim{end_id:02d}] ({end_id - start_id + 1} image(s))")
+                results = []
+                for kid in range(start_id, end_id + 1):
+                    p = download_kodak_image(kid)
+                    results.append({"path": p, "display_name": f"kodim{kid:02d}.png", "kodak_id": kid})
+                return results
+
+            if not folder_imgs:
+                raise RuntimeError(f"No image files found in specified directory: {img_dir}")
+            start_idx = max(1, start_val) - 1
+            end_idx = min(len(folder_imgs), end_val)
+            if start_idx >= len(folder_imgs):
+                print(f"[!] Warning: Range start {start_val} exceeds number of images ({len(folder_imgs)}) in {img_dir}. Using last image.")
+                selected = [folder_imgs[-1]]
+            else:
+                selected = folder_imgs[start_idx:end_idx]
+
+            print(f"[+] Selected image range [{start_val}..{end_val}] from folder '{img_dir}' ({len(selected)} image(s))")
+            results = []
+            for p in selected:
+                m = re.match(r"^kodim(\d+)\.png$", os.path.basename(p), re.IGNORECASE)
+                kid = int(m.group(1)) if m else None
+                results.append({"path": p, "display_name": os.path.basename(p), "kodak_id": kid})
+            return results
+
+        # Kodak suite range (default)
+        start_id = max(1, min(24, start_val))
+        end_id = max(1, min(24, end_val))
+        print(f"[+] Selected Kodak suite image range [kodim{start_id:02d}..kodim{end_id:02d}] ({end_id - start_id + 1} image(s))")
+        results = []
+        for kid in range(start_id, end_id + 1):
+            p = download_kodak_image(kid)
+            results.append({"path": p, "display_name": f"kodim{kid:02d}.png", "kodak_id": kid})
+        return results
+
+    # 2. Explicit list of images via --images
+    if getattr(args, "images", None):
+        results = []
+        for item in args.images:
+            p, disp, kid = resolve_single_image(item, image_dir=img_dir)
+            results.append({"path": p, "display_name": disp, "kodak_id": kid})
+        return results
+
+    # 3. Comma-separated or single image in --image
+    if input_image:
+        if "," in input_image:
+            parts = [x.strip() for x in input_image.split(",") if x.strip()]
+            results = []
+            for item in parts:
+                p, disp, kid = resolve_single_image(item, image_dir=img_dir)
+                results.append({"path": p, "display_name": disp, "kodak_id": kid})
+            return results
+        p, disp, kid = resolve_single_image(input_image, image_dir=img_dir)
+        return [{"path": p, "display_name": disp, "kodak_id": kid}]
+
+    # 4. Image directory provided without range: evaluate all images in directory
+    if img_dir:
+        folder_imgs = find_images_in_dir(img_dir)
+        if folder_imgs:
+            print(f"[+] Discovered {len(folder_imgs)} image(s) in image folder '{img_dir}'")
+            results = []
+            for p in folder_imgs:
+                m = re.match(r"^kodim(\d+)\.png$", os.path.basename(p), re.IGNORECASE)
+                kid = int(m.group(1)) if m else None
+                results.append({"path": p, "display_name": os.path.basename(p), "kodak_id": kid})
+            return results
+
+    # 5. Default: Kodak image specified by --kodak-id (default: 1)
+    kid = getattr(args, "kodak_id", 1)
+    p = download_kodak_image(kid)
+    return [{"path": p, "display_name": f"kodim{kid:02d}.png", "kodak_id": kid}]
+
 def get_benchmark_image_name(bench_type, args, resolved_image_name=None):
     """
     Determine the image name/identifier to be recorded in the CSV for a given benchmark.
@@ -345,7 +550,8 @@ def export_algorithm_csv(csv_path, results_list, image_name):
         writer.writeheader()
         for r in results_list:
             row = dict(r)
-            row["image"] = image_name
+            if not row.get("image"):
+                row["image"] = image_name
             for k in CSV_FIELDNAMES:
                 if k not in row or row[k] is None:
                     row[k] = ""
@@ -422,9 +628,10 @@ def resolve_unique_output_path(base_path, run_idx=None, total_runs=1, timestamp_
 
 def compile_edge_detection(env, width=32, height=32, kernel_iterations=1,
                            use_kodak=True, kodak_id=1, image_path=None,
-                           flush_cache=True, flush_size_kb=256):
+                           flush_cache=True, flush_size_kb=256,
+                           output_elf=None, image_display_name=None):
     src = os.path.join(BENCHMARKS_DIR, "edge_detection", "edge_detection_benchmark.c")
-    elf = os.path.join(BENCHMARKS_DIR, "edge_detection", "edge_detection_benchmark.riscv")
+    elf = output_elf if output_elf else os.path.join(BENCHMARKS_DIR, "edge_detection", "edge_detection_benchmark.riscv")
     edge_dir = os.path.join(BENCHMARKS_DIR, "edge_detection")
     gcc_path = get_gcc_path(env)
 
@@ -451,7 +658,8 @@ def compile_edge_detection(env, width=32, height=32, kernel_iterations=1,
     if use_kodak:
         generate_edge_detection_header(width=width, height=height, kodak_id=kodak_id, image_path=image_path)
         cmd.append("-DUSE_KODAK_DATA")
-        print(f"[+] Compiling Edge Detection with dataset image ({width}x{height}{iter_tag}{flush_tag}): {src}")
+        disp_name = image_display_name or (os.path.basename(image_path) if image_path else f"kodim{kodak_id:02d}.png")
+        print(f"[+] Compiling Edge Detection with dataset image '{disp_name}' ({width}x{height}{iter_tag}{flush_tag}): {src}")
     else:
         print(f"[+] Compiling Edge Detection benchmark with synthetic pattern ({width}x{height}{iter_tag}{flush_tag}): {src}")
 
@@ -569,7 +777,8 @@ def compile_optical_flow(env, width=32, height=32, use_kodak=True, kodak_id=1, s
 def compile_benchmark(env, bench_type="edge_detection", width=32, height=32,
                       kernel_iterations=1, use_kodak=True, kodak_id=1,
                       shift_x=1, shift_y=1, kodak_pair=None, image_path=None,
-                      flush_cache=True, flush_size_kb=256):
+                      flush_cache=True, flush_size_kb=256,
+                      output_elf=None, image_display_name=None):
     if bench_type in ["fft", "fft_benchmark"]:
         return compile_fft_benchmark(env)
     elif bench_type in ["optical_flow", "optflow", "optical_flow_benchmark"]:
@@ -583,7 +792,9 @@ def compile_benchmark(env, bench_type="edge_detection", width=32, height=32,
                                       kodak_id=kodak_id,
                                       image_path=image_path,
                                       flush_cache=flush_cache,
-                                      flush_size_kb=flush_size_kb)
+                                      flush_size_kb=flush_size_kb,
+                                      output_elf=output_elf,
+                                      image_display_name=image_display_name)
 
 def run_verilator_sim(config_name, bench_name, elf_path, env, build_missing=False, timeout=1800, threads=1, rebuild=False):
     """Run benchmark binary on Verilator simulator for given config"""
@@ -778,12 +989,22 @@ def parse_benchmark_output(output):
 
 def print_summary_table(results):
     """Print ASCII summary table of benchmark results"""
-    print("\n" + "=" * 144)
+    has_image = any("image" in r and r.get("image") for r in results)
+    max_img_len = max([len(str(r.get("image", ""))) for r in results] + [5]) if has_image else 0
+    img_col_w = max(max_img_len, 12)
+
+    base_w = 144
+    total_w = base_w + (img_col_w + 3 if has_image else 0)
+
+    print("\n" + "=" * total_w)
     print("BENCHMARK RESULTS SUMMARY")
-    print("=" * 144)
-    header = f"{'Config':<32} | {'Benchmark':<14} | {'Simulator':<14} | {'Status':<7} | {'Cycles':<10} | {'IPC':<6} | {'Br Mispred':<10} | {'D$ Misses':<10} | {'I$ Misses':<9} | {'Time (s)':<8}"
+    print("=" * total_w)
+    if has_image:
+        header = f"{'Config':<30} | {'Benchmark':<14} | {'Image':<{img_col_w}} | {'Simulator':<14} | {'Status':<7} | {'Cycles':<10} | {'IPC':<6} | {'Br Mispred':<10} | {'D$ Misses':<10} | {'I$ Misses':<9} | {'Time (s)':<8}"
+    else:
+        header = f"{'Config':<32} | {'Benchmark':<14} | {'Simulator':<14} | {'Status':<7} | {'Cycles':<10} | {'IPC':<6} | {'Br Mispred':<10} | {'D$ Misses':<10} | {'I$ Misses':<9} | {'Time (s)':<8}"
     print(header)
-    print("-" * 144)
+    print("-" * total_w)
 
     for r in results:
         cfg = r.get("config", "N/A")
@@ -803,9 +1024,13 @@ def print_summary_table(results):
         dc_misses = str(r.get('dc_misses', 'N/A'))
         ic_misses = str(r.get('ic_misses', 'N/A'))
 
-        print(f"{cfg:<32} | {bench:<14} | {sim:<14} | {status:<7} | {cycles:<10} | {ipc:<6} | {br_miss:<10} | {dc_misses:<10} | {ic_misses:<9} | {wtime:<8}")
+        if has_image:
+            img_val = str(r.get("image", "N/A"))
+            print(f"{cfg:<30} | {bench:<14} | {img_val:<{img_col_w}} | {sim:<14} | {status:<7} | {cycles:<10} | {ipc:<6} | {br_miss:<10} | {dc_misses:<10} | {ic_misses:<9} | {wtime:<8}")
+        else:
+            print(f"{cfg:<32} | {bench:<14} | {sim:<14} | {status:<7} | {cycles:<10} | {ipc:<6} | {br_miss:<10} | {dc_misses:<10} | {ic_misses:<9} | {wtime:<8}")
 
-    print("=" * 144 + "\n")
+    print("=" * total_w + "\n")
 
 def main():
     parser = argparse.ArgumentParser(description="Run benchmark suite across Chipyard processor configs.")
@@ -818,7 +1043,11 @@ def main():
     parser.add_argument("--rebuild", action="store_true", help="Force rebuild of Verilator simulator binaries (e.g., when changing thread count)")
     parser.add_argument("--output", default=DEFAULT_OUTPUT_DIR, help=f"Output directory for benchmark results (default: {DEFAULT_OUTPUT_DIR})")
     parser.add_argument("--overwrite", action="store_true", help="Allow overwriting target output directory if it exists (default: False, generates unique name)")
-    parser.add_argument("--image", "--image-name", dest="image", default=None, help="Input image file path or Kodak image name (e.g. 'kodim01.png', 'test.jpg')")
+    parser.add_argument("--image", "--image-name", dest="image", default=None, help="Input image file path, range, or Kodak image name (e.g. 'kodim01.png', 'test.jpg', '1-5')")
+    parser.add_argument("--image-range", nargs="+", default=None, help="Image range to benchmark (e.g., '1 5', '1-5', '1..5') from Kodak suite or --image-dir")
+    parser.add_argument("--kodak-range", nargs="+", default=None, help="Kodak suite image range (1-24) to benchmark (e.g., '1 5', '1-5', '1..5')")
+    parser.add_argument("--image-dir", "--images-dir", dest="image_dir", default=None, help="Directory containing images to benchmark")
+    parser.add_argument("--images", nargs="+", default=None, help="List of image files, paths, or Kodak IDs/names to benchmark")
     parser.add_argument("--img-width", type=int, default=32, help="Image width for benchmark (default: 32)")
     parser.add_argument("--img-height", type=int, default=32, help="Image height for benchmark (default: 32)")
     parser.add_argument("--kodak-id", type=int, default=1, help="Kodak suite image ID (1-24) to use for dataset frames (default: 1)")
@@ -859,37 +1088,58 @@ def main():
     else:
         benchmarks_to_run = ["edge_detection"]
 
-    # Resolve image path and display name if provided
-    image_path = None
+    # Resolve images for edge detection
+    edge_images = []
+    if "edge_detection" in benchmarks_to_run:
+        edge_images = resolve_edge_detection_images(args)
+
+    # For optical flow / single image fallback
+    single_image_path = None
     resolved_image_name = None
-    if args.image:
-        if os.path.exists(args.image):
-            image_path = os.path.abspath(args.image)
-            resolved_image_name = os.path.basename(args.image)
-        elif os.path.exists(os.path.join(KODAK_CACHE_DIR, args.image)):
-            image_path = os.path.join(KODAK_CACHE_DIR, args.image)
-            resolved_image_name = args.image
-        elif os.path.exists(os.path.join(BENCHMARKS_DIR, "edge_detection", args.image)):
-            image_path = os.path.join(BENCHMARKS_DIR, "edge_detection", args.image)
-            resolved_image_name = args.image
-        elif re.match(r"^kodim(\d+)(?:\.png)?$", args.image, re.IGNORECASE):
-            m = re.match(r"^kodim(\d+)(?:\.png)?$", args.image, re.IGNORECASE)
-            args.kodak_id = int(m.group(1))
-            image_path = download_kodak_image(args.kodak_id)
-            resolved_image_name = f"kodim{args.kodak_id:02d}.png"
-        elif args.image.isdigit():
-            args.kodak_id = int(args.image)
-            image_path = download_kodak_image(args.kodak_id)
-            resolved_image_name = f"kodim{args.kodak_id:02d}.png"
-        else:
-            print(f"[!] Warning: Specified image file '{args.image}' not found! Falling back to Kodak image #{args.kodak_id:02d}")
-            image_path = download_kodak_image(args.kodak_id)
-            resolved_image_name = f"kodim{args.kodak_id:02d}.png"
+    if getattr(args, "image", None) and not os.path.isdir(args.image) and not parse_range_spec(args.image) and "," not in args.image:
+        single_image_path, resolved_image_name, _ = resolve_single_image(args.image)
+    elif edge_images and len(edge_images) == 1:
+        single_image_path = edge_images[0]["path"]
+        resolved_image_name = edge_images[0]["display_name"]
     elif not args.synthetic_frames:
         resolved_image_name = f"kodim{args.kodak_id:02d}.png"
 
-    compiled_elfs = {}
+    # Pre-compile edge detection benchmark for each target image
+    compiled_edge_elfs = []
+    if "edge_detection" in benchmarks_to_run:
+        num_imgs = len(edge_images)
+        if num_imgs > 1:
+            print(f"[+] Compiling Edge Detection benchmark for {num_imgs} target image(s)...")
+        for img_info in edge_images:
+            p = img_info["path"]
+            disp = img_info["display_name"]
+            kid = img_info["kodak_id"]
+            if num_imgs > 1:
+                safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', os.path.splitext(disp)[0])
+                elf_target = os.path.join(BENCHMARKS_DIR, "edge_detection", f"edge_detection_benchmark_{safe_name}.riscv")
+            else:
+                elf_target = os.path.join(BENCHMARKS_DIR, "edge_detection", "edge_detection_benchmark.riscv")
+
+            elf = compile_edge_detection(
+                env,
+                width=args.img_width,
+                height=args.img_height,
+                kernel_iterations=args.kernel_iterations,
+                use_kodak=(not args.synthetic_frames),
+                kodak_id=kid if kid is not None else args.kodak_id,
+                image_path=p,
+                flush_cache=(not args.no_cache_flush),
+                flush_size_kb=args.flush_size_kb,
+                output_elf=elf_target,
+                image_display_name=disp
+            )
+            compiled_edge_elfs.append((img_info, elf))
+
+    # Pre-compile other benchmarks if requested
+    compiled_other_elfs = {}
     for bench in benchmarks_to_run:
+        if bench == "edge_detection":
+            continue
         elf = compile_benchmark(
             env,
             bench_type=bench,
@@ -901,11 +1151,11 @@ def main():
             shift_x=args.shift_x,
             shift_y=args.shift_y,
             kodak_pair=args.kodak_pair,
-            image_path=image_path,
+            image_path=single_image_path,
             flush_cache=(not args.no_cache_flush),
             flush_size_kb=args.flush_size_kb
         )
-        compiled_elfs[bench] = elf
+        compiled_other_elfs[bench] = elf
 
     # Determine target configs
     if args.configs:
@@ -935,21 +1185,42 @@ def main():
         run_start_timestamp = datetime.datetime.now().isoformat()
 
         for bench in benchmarks_to_run:
-            elf_path = compiled_elfs[bench]
-            for config in target_configs:
-                if args.simulator == "spike":
-                    res = run_spike_sim(config, bench, elf_path, env, timeout=args.timeout)
-                elif args.simulator == "verilator":
-                    res = run_verilator_sim(config, bench, elf_path, env, build_missing=args.build_missing, timeout=args.timeout, threads=args.threads, rebuild=args.rebuild)
-                else: # auto
-                    if config in compiled_verilator or args.build_missing or args.rebuild:
-                        res = run_verilator_sim(config, bench, elf_path, env, build_missing=args.build_missing, timeout=args.timeout, threads=args.threads, rebuild=args.rebuild)
-                    else:
-                        print(f"[!] Verilator binary not compiled for {config}. Falling back to Spike...")
-                        res = run_spike_sim(config, bench, elf_path, env, timeout=args.timeout)
+            if bench == "edge_detection":
+                for img_info, elf_path in compiled_edge_elfs:
+                    img_disp = img_info["display_name"]
+                    for config in target_configs:
+                        if args.simulator == "spike":
+                            res = run_spike_sim(config, bench, elf_path, env, timeout=args.timeout)
+                        elif args.simulator == "verilator":
+                            res = run_verilator_sim(config, bench, elf_path, env, build_missing=args.build_missing, timeout=args.timeout, threads=args.threads, rebuild=args.rebuild)
+                        else: # auto
+                            if config in compiled_verilator or args.build_missing or args.rebuild:
+                                res = run_verilator_sim(config, bench, elf_path, env, build_missing=args.build_missing, timeout=args.timeout, threads=args.threads, rebuild=args.rebuild)
+                            else:
+                                print(f"[!] Verilator binary not compiled for {config}. Falling back to Spike...")
+                                res = run_spike_sim(config, bench, elf_path, env, timeout=args.timeout)
 
-                res["run_iteration"] = run_idx
-                benchmark_results.append(res)
+                        res["image"] = img_disp
+                        res["run_iteration"] = run_idx
+                        benchmark_results.append(res)
+            else:
+                elf_path = compiled_other_elfs[bench]
+                img_disp = get_benchmark_image_name(bench, args, resolved_image_name)
+                for config in target_configs:
+                    if args.simulator == "spike":
+                        res = run_spike_sim(config, bench, elf_path, env, timeout=args.timeout)
+                    elif args.simulator == "verilator":
+                        res = run_verilator_sim(config, bench, elf_path, env, build_missing=args.build_missing, timeout=args.timeout, threads=args.threads, rebuild=args.rebuild)
+                    else: # auto
+                        if config in compiled_verilator or args.build_missing or args.rebuild:
+                            res = run_verilator_sim(config, bench, elf_path, env, build_missing=args.build_missing, timeout=args.timeout, threads=args.threads, rebuild=args.rebuild)
+                        else:
+                            print(f"[!] Verilator binary not compiled for {config}. Falling back to Spike...")
+                            res = run_spike_sim(config, bench, elf_path, env, timeout=args.timeout)
+
+                    res["image"] = img_disp
+                    res["run_iteration"] = run_idx
+                    benchmark_results.append(res)
 
         print_summary_table(benchmark_results)
 
