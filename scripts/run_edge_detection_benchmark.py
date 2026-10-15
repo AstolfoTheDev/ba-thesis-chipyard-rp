@@ -663,9 +663,12 @@ def compile_edge_detection(env, width=32, height=32, kernel_iterations=1,
     else:
         print(f"[+] Compiling Edge Detection benchmark with synthetic pattern ({width}x{height}{iter_tag}{flush_tag}): {src}")
 
-    cmd.extend([
-        src,
+    atexit_candidates = [
+        os.path.join(TESTS_DIR, "atexit-workaround.c"),
+        os.path.join(BENCHMARKS_DIR, "common", "atexit-workaround.c")
     ]
+    atexit_src = next((p for p in atexit_candidates if os.path.exists(p)), None)
+    cmd.append(src)
     if atexit_src:
         cmd.extend([atexit_src, "-Wl,--wrap=atexit"])
     cmd.extend([

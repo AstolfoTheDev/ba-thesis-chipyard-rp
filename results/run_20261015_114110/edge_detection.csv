@@ -1,0 +1,3 @@
+image,config,benchmark,simulator,threads,status,cycles,instructions,ipc,branches,br_misses,br_miss_rate_pct,ic_misses,dc_accesses,dc_misses,dc_miss_rate_pct,cache_miss_rate_pct,cache_hit_rate_pct,wall_clock_time_sec,checksum,return_code,run_iteration,error
+kodim01.png,BenchmarkRocketConfig,edge_detection,verilator,11,SUCCESS,28084,26356,0.9385,1380,215,15.58,7,3780,3,0.08,0.03,99.97,37.5627,111968,0,1,
+kodim02.png,BenchmarkRocketConfig,edge_detection,verilator,11,SUCCESS,27779,26291,0.9464,1380,130,9.42,7,3780,3,0.08,0.03,99.97,49.8363,45689,0,1,

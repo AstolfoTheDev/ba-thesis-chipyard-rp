@@ -9,7 +9,7 @@
 #define KODAK_IMG_HEIGHT 32
 #define KODAK_NPIX       (1024)
 
-/* Frame 1: Kodak image #01 with motion displacement (dx=1, dy=1) */
+/* Frame 1: Input image kodim01.png (dx=1, dy=1) */
 static const uint8_t kodak_frame1[KODAK_NPIX] = {
     164, 150, 142, 129, 100, 123, 164, 157, 141, 146, 150, 157, 158, 145, 145, 150,
     150, 148, 156, 149, 150, 154, 153, 149, 143, 145, 133, 121,  95,  65, 152, 162,
@@ -77,7 +77,7 @@ static const uint8_t kodak_frame1[KODAK_NPIX] = {
     145, 137, 138, 161, 132, 118, 119, 124, 116, 133, 129, 109,  93,  63,  69,  60,
 };
 
-/* Frame 2: Kodak image #01 with motion displacement (dx=1, dy=1) */
+/* Frame 2: Input image kodim01.png (dx=1, dy=1) */
 static const uint8_t kodak_frame2[KODAK_NPIX] = {
     158, 149, 171, 158, 119, 103, 141, 138, 109, 141, 137, 145, 145, 111, 149, 158,
     157, 154, 154, 154, 161, 161, 143, 134, 143, 142, 123,  95,  58, 158, 176, 150,
