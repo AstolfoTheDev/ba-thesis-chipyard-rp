@@ -41,6 +41,16 @@ DEFAULT_OUTPUT_DIR = os.path.join(SUBMODULE_DIR, "results")
 DEFAULT_OUTPUT_JSON = os.path.join(SUBMODULE_DIR, "results", "edge_detection_benchmark_results.json")
 KODAK_BASE_URL = "https://r0k.us/graphics/kodak/kodak"
 KODAK_CACHE_DIR = os.path.join(BENCHMARKS_DIR, "edge_detection", "kodak_images")
+MIDDLEBURY_BASE_URL = "https://vision.middlebury.edu/stereo/data/scenes2021"
+MIDDLEBURY_CACHE_DIR = os.path.join(BENCHMARKS_DIR, "edge_detection", "middlebury_images")
+MIDDLEBURY_SCENES_2021 = [
+    "artroom1", "artroom2", "bandsaw1", "bandsaw2",
+    "chess1", "chess2", "chess3", "curule1",
+    "curule2", "curule3", "ladder1", "ladder2",
+    "octogons1", "octogons2", "pendulum1", "pendulum2",
+    "podium1", "skates1", "skates2", "skiboots1",
+    "skiboots2", "skiboots3", "traproom1", "traproom2"
+]
 
 # Environment setup helper
 def get_env():
@@ -160,9 +170,105 @@ def download_kodak_image(image_id=1, cache_dir=KODAK_CACHE_DIR):
 
     return local_path
 
-def generate_optical_flow_header(width=32, height=32, kodak_id=1, shift_x=1, shift_y=1, pair=None, dest_header=None, image_path=None):
+def normalize_middlebury_scene(scene_spec):
     """
-    Generate optical_flow_data.h from Kodak image(s) or custom image.
+    Normalize a scene specifier (index 1..24, scene name string, URL, etc.)
+    Returns canonical scene name (e.g. 'artroom1') and 1-based index (1..24).
+    """
+    if scene_spec is None:
+        return None, None
+
+    # Handle int or numeric string
+    if isinstance(scene_spec, int) or (isinstance(scene_spec, str) and scene_spec.strip().isdigit()):
+        idx = int(scene_spec)
+        if 1 <= idx <= len(MIDDLEBURY_SCENES_2021):
+            return MIDDLEBURY_SCENES_2021[idx - 1], idx
+        raise ValueError(f"Middlebury 2021 scene index must be between 1 and {len(MIDDLEBURY_SCENES_2021)}, got {idx}")
+
+    s = str(scene_spec).strip()
+    # Strip URL or path if given
+    s = s.rstrip("/").split("/")[-1]
+    s_lower = s.lower()
+
+    # Exact match
+    for idx, scene in enumerate(MIDDLEBURY_SCENES_2021, start=1):
+        if scene.lower() == s_lower:
+            return scene, idx
+
+    # Match without trailing number if unique or default to 1 (e.g. 'artroom' -> 'artroom1')
+    candidates = [scene for scene in MIDDLEBURY_SCENES_2021 if scene.lower().startswith(s_lower)]
+    if len(candidates) == 1:
+        c = candidates[0]
+        return c, MIDDLEBURY_SCENES_2021.index(c) + 1
+    elif len(candidates) > 1 and f"{s_lower}1" in [c.lower() for c in candidates]:
+        c = next(c for c in candidates if c.lower() == f"{s_lower}1")
+        return c, MIDDLEBURY_SCENES_2021.index(c) + 1
+
+    raise ValueError(f"Unknown Middlebury 2021 scene: '{scene_spec}'. Available scenes: {', '.join(MIDDLEBURY_SCENES_2021)}")
+
+def download_middlebury_scene(scene_spec, cache_dir=MIDDLEBURY_CACHE_DIR, use_thumbnails=False):
+    """
+    Download a Middlebury Scenes 2021 stereo image pair (im0, im1) and cache locally.
+    Returns tuple of (im0_path, im1_path, scene_name).
+    """
+    scene_name, scene_idx = normalize_middlebury_scene(scene_spec)
+    scene_dir = os.path.join(cache_dir, scene_name)
+    os.makedirs(scene_dir, exist_ok=True)
+
+    img0_filename = "im0.jpg" if use_thumbnails else "im0.png"
+    img1_filename = "im1.jpg" if use_thumbnails else "im1.png"
+
+    local_path0 = os.path.join(scene_dir, img0_filename)
+    local_path1 = os.path.join(scene_dir, img1_filename)
+
+    base_sub = "thumbs" if use_thumbnails else "data"
+    url0 = f"{MIDDLEBURY_BASE_URL}/{base_sub}/{scene_name}/{img0_filename}"
+    url1 = f"{MIDDLEBURY_BASE_URL}/{base_sub}/{scene_name}/{img1_filename}"
+
+    for local_path, url, desc in [
+        (local_path0, url0, "Frame 0 (left view)"),
+        (local_path1, url1, "Frame 1 (right view)")
+    ]:
+        if os.path.exists(local_path) and os.path.getsize(local_path) > 0:
+            continue
+
+        print(f"[+] Downloading Middlebury 2021 '{scene_name}' {desc} from {url}...")
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (ChipyardBenchmark/1.0)"})
+            with urllib.request.urlopen(req, timeout=45) as response, open(local_path, "wb") as out_file:
+                out_file.write(response.read())
+            print(f"[+] Saved {os.path.basename(local_path)} to {local_path} ({os.path.getsize(local_path)} bytes)")
+        except Exception as e:
+            if os.path.exists(local_path):
+                os.remove(local_path)
+            raise RuntimeError(f"Failed to download Middlebury image from {url}: {e}")
+
+    return local_path0, local_path1, scene_name
+
+def print_middlebury_scenes():
+    """Print formatted list of all available Middlebury 2021 scenes."""
+    print("\n" + "=" * 80)
+    print("MIDDLEBURY STEREO DATASET (SCENES 2021) - 24 SCENES")
+    print("=" * 80)
+    print(f"{'#':<4} | {'Scene Name':<16} | {'Views':<12} | {'Resolution':<20} | {'Status'}")
+    print("-" * 80)
+    for idx, name in enumerate(MIDDLEBURY_SCENES_2021, start=1):
+        cached_p0 = os.path.join(MIDDLEBURY_CACHE_DIR, name, "im0.png")
+        cached_p1 = os.path.join(MIDDLEBURY_CACHE_DIR, name, "im1.png")
+        cached = "Cached locally" if (os.path.exists(cached_p0) and os.path.exists(cached_p1)) else "Available online"
+        print(f"{idx:<4} | {name:<16} | {'im0, im1':<12} | {'1920x1080 (stereo)':<20} | {cached}")
+    print("=" * 80)
+    print("Source: https://vision.middlebury.edu/stereo/data/scenes2021/")
+    print(f"Local Cache: {MIDDLEBURY_CACHE_DIR}\n")
+
+def generate_optical_flow_header(width=32, height=32, kodak_id=1, shift_x=1, shift_y=1,
+                                 pair=None, dest_header=None, image_path=None,
+                                 frame1_path=None, frame2_path=None,
+                                 middlebury_scene=None, use_thumbnails=False,
+                                 crop_frames=False, dataset_desc=None):
+    """
+    Generate optical_flow_data.h from Middlebury stereo pair, Kodak image(s), or custom image pair.
+    If middlebury_scene is given, frame1 comes from im0 and frame2 from im1 of that scene.
     If pair is given (e.g. [1, 2]), frame1 comes from kodim01 and frame2 from kodim02.
     Otherwise, frame1 is a center crop and frame2 is shifted by (shift_x, shift_y).
     """
@@ -172,7 +278,50 @@ def generate_optical_flow_header(width=32, height=32, kodak_id=1, shift_x=1, shi
     if dest_header is None:
         dest_header = os.path.join(BENCHMARKS_DIR, "edge_detection", "optical_flow_data.h")
 
-    if image_path:
+    dataset_title = "Optical Flow Dataset"
+
+    if middlebury_scene:
+        p0, p1, sname = download_middlebury_scene(middlebury_scene, use_thumbnails=use_thumbnails)
+        dataset_title = f"Middlebury 2021 ({sname})"
+        img1 = Image.open(p0).convert("L")
+        img2 = Image.open(p1).convert("L")
+        if crop_frames:
+            orig_w, orig_h = img1.size
+            cx, cy = orig_w // 2, orig_h // 2
+            x0 = max(0, min(orig_w - width, cx - width // 2))
+            y0 = max(0, min(orig_h - height, cy - height // 2))
+            crop1 = img1.crop((x0, y0, x0 + width, y0 + height))
+            crop2 = img2.crop((x0, y0, x0 + width, y0 + height))
+            frame1_bytes = list(crop1.tobytes())
+            frame2_bytes = list(crop2.tobytes())
+            desc = dataset_desc or f"Middlebury 2021 scene '{sname}' (im0 -> im1, center crop)"
+        else:
+            r1 = img1.resize((width, height), Image.Resampling.BILINEAR)
+            r2 = img2.resize((width, height), Image.Resampling.BILINEAR)
+            frame1_bytes = list(r1.tobytes())
+            frame2_bytes = list(r2.tobytes())
+            desc = dataset_desc or f"Middlebury 2021 scene '{sname}' (im0 -> im1, bilinear resize)"
+    elif frame1_path and frame2_path:
+        img1 = Image.open(frame1_path).convert("L")
+        img2 = Image.open(frame2_path).convert("L")
+        dataset_title = "Stereo Image Pair"
+        if crop_frames:
+            orig_w, orig_h = img1.size
+            cx, cy = orig_w // 2, orig_h // 2
+            x0 = max(0, min(orig_w - width, cx - width // 2))
+            y0 = max(0, min(orig_h - height, cy - height // 2))
+            crop1 = img1.crop((x0, y0, x0 + width, y0 + height))
+            crop2 = img2.crop((x0, y0, x0 + width, y0 + height))
+            frame1_bytes = list(crop1.tobytes())
+            frame2_bytes = list(crop2.tobytes())
+            desc = dataset_desc or f"Frames {os.path.basename(frame1_path)} -> {os.path.basename(frame2_path)} (center crop)"
+        else:
+            r1 = img1.resize((width, height), Image.Resampling.BILINEAR)
+            r2 = img2.resize((width, height), Image.Resampling.BILINEAR)
+            frame1_bytes = list(r1.tobytes())
+            frame2_bytes = list(r2.tobytes())
+            desc = dataset_desc or f"Frames {os.path.basename(frame1_path)} -> {os.path.basename(frame2_path)} (bilinear resize)"
+    elif image_path:
         img = Image.open(image_path).convert("L")
         orig_w, orig_h = img.size
         cx, cy = orig_w // 2, orig_h // 2
@@ -182,6 +331,7 @@ def generate_optical_flow_header(width=32, height=32, kodak_id=1, shift_x=1, shi
         crop2 = img.crop((x0 + shift_x, y0 + shift_y, x0 + shift_x + width, y0 + shift_y + height))
         frame1_bytes = list(crop1.tobytes())
         frame2_bytes = list(crop2.tobytes())
+        dataset_title = f"Custom Image ({os.path.basename(image_path)})"
         desc = f"Input image {os.path.basename(image_path)} (dx={shift_x}, dy={shift_y})"
     elif pair:
         id1, id2 = pair[0], pair[1]
@@ -191,6 +341,7 @@ def generate_optical_flow_header(width=32, height=32, kodak_id=1, shift_x=1, shi
         img2 = Image.open(p2).convert("L").resize((width, height), Image.Resampling.BILINEAR)
         frame1_bytes = list(img1.tobytes())
         frame2_bytes = list(img2.tobytes())
+        dataset_title = f"Kodak Pair #{id1:02d} / #{id2:02d}"
         desc = f"Kodak image pair #{id1:02d} and #{id2:02d}"
     else:
         p = download_kodak_image(kodak_id)
@@ -207,6 +358,7 @@ def generate_optical_flow_header(width=32, height=32, kodak_id=1, shift_x=1, shi
 
         frame1_bytes = list(crop1.tobytes())
         frame2_bytes = list(crop2.tobytes())
+        dataset_title = f"Kodak #{kodak_id:02d}"
         desc = f"Kodak image #{kodak_id:02d} with motion displacement (dx={shift_x}, dy={shift_y})"
 
     print(f"[+] Generating optical flow dataset header ({width}x{height}) using {desc}...")
@@ -218,6 +370,7 @@ def generate_optical_flow_header(width=32, height=32, kodak_id=1, shift_x=1, shi
         f.write("#define OPTICAL_FLOW_DATA_H\n\n")
         f.write("#include <stdint.h>\n\n")
         f.write("#define USE_KODAK_DATA 1\n")
+        f.write(f'#define OPTICAL_FLOW_DATASET_NAME "{dataset_title}"\n')
         f.write(f"#define KODAK_IMG_WIDTH  {width}\n")
         f.write(f"#define KODAK_IMG_HEIGHT {height}\n")
         f.write(f"#define KODAK_NPIX       ({npix})\n\n")
@@ -300,7 +453,7 @@ def find_images_in_dir(directory):
     files.sort(key=lambda p: natural_sort_key(os.path.basename(p)))
     return files
 
-def parse_range_spec(spec, allow_single_as_range=False):
+def parse_range_spec(spec, allow_single_as_range=False, is_middlebury=False):
     """
     Parses range specification from CLI args into (start_idx, end_idx) 1-based integers.
     Accepts:
@@ -308,14 +461,26 @@ def parse_range_spec(spec, allow_single_as_range=False):
       ['1-5'] / ['1..5'] / ['1:5'] -> (1, 5)
       ['kodim01', 'kodim05']     -> (1, 5)
       ['kodim01..kodim05']       -> (1, 5)
+      ['artroom1', 'chess1']     -> (1, 5)
+      ['artroom1..chess1']       -> (1, 5)
+      ['all']                    -> (1, 24)
       ['5']                      -> (1, 5) if allow_single_as_range else None
     """
     if not spec:
         return None
     if isinstance(spec, (list, tuple)):
         if len(spec) == 2:
-            s1 = re.sub(r'^[^\d]*', '', str(spec[0]))
-            s2 = re.sub(r'^[^\d]*', '', str(spec[1]))
+            s1_raw = str(spec[0]).strip()
+            s2_raw = str(spec[1]).strip()
+            try:
+                _, idx1 = normalize_middlebury_scene(s1_raw)
+                _, idx2 = normalize_middlebury_scene(s2_raw)
+                if idx1 is not None and idx2 is not None:
+                    return (min(idx1, idx2), max(idx1, idx2))
+            except Exception:
+                pass
+            s1 = re.sub(r'^[^\d]*', '', s1_raw)
+            s2 = re.sub(r'^[^\d]*', '', s2_raw)
             if s1.isdigit() and s2.isdigit():
                 start, end = int(s1), int(s2)
                 return (min(start, end), max(start, end))
@@ -324,6 +489,20 @@ def parse_range_spec(spec, allow_single_as_range=False):
         raw = str(spec)
 
     raw = raw.strip()
+    if raw.lower() in ["all", "*"]:
+        return (1, len(MIDDLEBURY_SCENES_2021) if is_middlebury else 24)
+
+    # Check for Middlebury scene names in format scene1..scene2 or scene1-scene2
+    m_scenes = re.split(r'\s*(?:\.\.|\-|\:|\s+)\s*', raw)
+    if len(m_scenes) == 2:
+        try:
+            _, idx1 = normalize_middlebury_scene(m_scenes[0])
+            _, idx2 = normalize_middlebury_scene(m_scenes[1])
+            if idx1 is not None and idx2 is not None:
+                return (min(idx1, idx2), max(idx1, idx2))
+        except Exception:
+            pass
+
     m = re.match(r'^(?:kodim)?(\d+)\s*(?:-|\.\.|\:|\s+)\s*(?:kodim)?(\d+)$', raw, re.IGNORECASE)
     if m:
         start, end = int(m.group(1)), int(m.group(2))
@@ -357,6 +536,15 @@ def resolve_single_image(item, image_dir=None):
         p = os.path.abspath(os.path.join(BENCHMARKS_DIR, "edge_detection", item))
         return p, item, None
 
+    # Check for Middlebury scene
+    try:
+        mb_name, _ = normalize_middlebury_scene(item)
+        if mb_name:
+            p0, _, sname = download_middlebury_scene(mb_name)
+            return p0, f"middlebury_{sname}_im0.png", None
+    except Exception:
+        pass
+
     m = re.match(r"^kodim(\d+)(?:\.png)?$", item, re.IGNORECASE)
     if m:
         kid = int(m.group(1))
@@ -379,6 +567,16 @@ def resolve_edge_detection_images(args):
     """
     if getattr(args, "synthetic_frames", False):
         return [{"path": None, "display_name": "synthetic", "kodak_id": None}]
+
+    # Check Middlebury scenes for edge detection if explicitly provided
+    if getattr(args, "middlebury", None) or getattr(args, "middlebury_scenes", None) or getattr(args, "middlebury_range", None):
+        mb_scenes = resolve_middlebury_scenes(args)
+        if mb_scenes:
+            results = []
+            for sname in mb_scenes:
+                p0, _, name = download_middlebury_scene(sname, use_thumbnails=getattr(args, "middlebury_thumbnails", False))
+                results.append({"path": p0, "display_name": f"middlebury_{name}_im0.png", "kodak_id": None})
+            return results
 
     img_dir = None
     input_image = getattr(args, "image", None)
@@ -488,6 +686,166 @@ def resolve_edge_detection_images(args):
     p = download_kodak_image(kid)
     return [{"path": p, "display_name": f"kodim{kid:02d}.png", "kodak_id": kid}]
 
+def resolve_middlebury_scenes(args):
+    """
+    Resolve requested Middlebury 2021 scenes into a list of scene names.
+    Returns: list of canonical scene names, e.g. ['artroom1', 'artroom2', ...]
+    """
+    scenes = []
+    # 1. Check --middlebury-range
+    if getattr(args, "middlebury_range", None):
+        rng = parse_range_spec(args.middlebury_range, allow_single_as_range=True, is_middlebury=True)
+        if rng:
+            s_idx = max(1, min(len(MIDDLEBURY_SCENES_2021), rng[0]))
+            e_idx = max(1, min(len(MIDDLEBURY_SCENES_2021), rng[1]))
+            scenes.extend(MIDDLEBURY_SCENES_2021[s_idx - 1:e_idx])
+            return scenes
+
+    # 2. Check --middlebury-scenes / --scenes
+    if getattr(args, "middlebury_scenes", None):
+        for item in args.middlebury_scenes:
+            try:
+                sname, _ = normalize_middlebury_scene(item)
+                if sname and sname not in scenes:
+                    scenes.append(sname)
+            except ValueError as e:
+                print(f"[!] Warning: {e}")
+        if scenes:
+            return scenes
+
+    # 3. Check --middlebury / --scene
+    mb_arg = getattr(args, "middlebury", None)
+    if mb_arg:
+        if str(mb_arg).strip().lower() in ["all", "*"]:
+            return list(MIDDLEBURY_SCENES_2021)
+        if "," in str(mb_arg):
+            for part in str(mb_arg).split(","):
+                part = part.strip()
+                if part:
+                    try:
+                        sname, _ = normalize_middlebury_scene(part)
+                        if sname and sname not in scenes:
+                            scenes.append(sname)
+                    except ValueError as e:
+                        print(f"[!] Warning: {e}")
+            if scenes:
+                return scenes
+        rng = parse_range_spec(mb_arg, allow_single_as_range=False, is_middlebury=True)
+        if rng:
+            s_idx = max(1, min(len(MIDDLEBURY_SCENES_2021), rng[0]))
+            e_idx = max(1, min(len(MIDDLEBURY_SCENES_2021), rng[1]))
+            return MIDDLEBURY_SCENES_2021[s_idx - 1:e_idx]
+        try:
+            sname, _ = normalize_middlebury_scene(mb_arg)
+            return [sname]
+        except ValueError as e:
+            print(f"[!] Warning: {e}")
+
+    # 4. Check if --image or --dataset specifies middlebury
+    img_arg = getattr(args, "image", None)
+    if img_arg:
+        if str(img_arg).strip().lower() in ["middlebury", "scenes2021"]:
+            return ["artroom1"]
+        try:
+            sname, _ = normalize_middlebury_scene(img_arg)
+            return [sname]
+        except ValueError:
+            pass
+
+    if getattr(args, "dataset", None) == "middlebury":
+        return ["artroom1"]
+
+    return []
+
+def resolve_optical_flow_tasks(args):
+    """
+    Resolve sequence of tasks/scenes to run for optical flow benchmark.
+    Returns list of dicts:
+      {
+        "display_name": "middlebury_artroom1",
+        "csv_image_name": "middlebury:artroom1",
+        "type": "middlebury",
+        "middlebury_scene": "artroom1",
+        "frame1_path": ...,
+        "frame2_path": ...,
+        "desc": "Middlebury 2021 scene 'artroom1' (im0 -> im1)"
+      }
+    """
+    tasks = []
+    if getattr(args, "synthetic_frames", False):
+        return [{
+            "display_name": "synthetic",
+            "csv_image_name": "synthetic",
+            "type": "synthetic"
+        }]
+
+    # Check for Middlebury scenes
+    mb_scenes = resolve_middlebury_scenes(args)
+    if mb_scenes:
+        use_thumbs = getattr(args, "middlebury_thumbnails", False)
+        print(f"[+] Selected {len(mb_scenes)} Middlebury Scenes 2021 image set(s): {', '.join(mb_scenes)}")
+        for sname in mb_scenes:
+            p0, p1, canon_name = download_middlebury_scene(sname, use_thumbnails=use_thumbs)
+            tasks.append({
+                "display_name": f"middlebury_{canon_name}",
+                "csv_image_name": f"middlebury:{canon_name}",
+                "type": "middlebury",
+                "middlebury_scene": canon_name,
+                "frame1_path": p0,
+                "frame2_path": p1,
+                "desc": f"Middlebury 2021 '{canon_name}' ({'im0.jpg->im1.jpg' if use_thumbs else 'im0.png->im1.png'})"
+            })
+        return tasks
+
+    # Check for Kodak pair
+    if getattr(args, "kodak_pair", None):
+        id1, id2 = args.kodak_pair
+        p1 = download_kodak_image(id1)
+        p2 = download_kodak_image(id2)
+        tasks.append({
+            "display_name": f"kodak_{id1:02d}_{id2:02d}",
+            "csv_image_name": f"kodim{id1:02d}.png, kodim{id2:02d}.png",
+            "type": "kodak_pair",
+            "kodak_pair": args.kodak_pair,
+            "frame1_path": p1,
+            "frame2_path": p2,
+            "desc": f"Kodak image pair #{id1:02d} and #{id2:02d}"
+        })
+        return tasks
+
+    # Check custom image
+    if getattr(args, "image", None):
+        p, disp, kid = resolve_single_image(args.image)
+        if kid is not None:
+            tasks.append({
+                "display_name": f"kodim{kid:02d}",
+                "csv_image_name": f"kodim{kid:02d}.png",
+                "type": "kodak_single",
+                "kodak_id": kid,
+                "desc": f"Kodak image #{kid:02d} with motion displacement (dx={args.shift_x}, dy={args.shift_y})"
+            })
+        else:
+            tasks.append({
+                "display_name": os.path.splitext(disp)[0],
+                "csv_image_name": disp,
+                "type": "custom",
+                "image_path": p,
+                "desc": f"Input image {disp} (dx={args.shift_x}, dy={args.shift_y})"
+            })
+        return tasks
+
+    # Default: Kodak single image (args.kodak_id)
+    kid = getattr(args, "kodak_id", 1)
+    p = download_kodak_image(kid)
+    tasks.append({
+        "display_name": f"kodim{kid:02d}",
+        "csv_image_name": f"kodim{kid:02d}.png",
+        "type": "kodak_single",
+        "kodak_id": kid,
+        "desc": f"Kodak image #{kid:02d} with motion displacement (dx={args.shift_x}, dy={args.shift_y})"
+    })
+    return tasks
+
 def get_benchmark_image_name(bench_type, args, resolved_image_name=None):
     """
     Determine the image name/identifier to be recorded in the CSV for a given benchmark.
@@ -504,9 +862,13 @@ def get_benchmark_image_name(bench_type, args, resolved_image_name=None):
     if getattr(args, "image", None):
         return os.path.basename(args.image)
 
-    if bench_type in ["optical_flow", "optflow", "optical_flow_benchmark"] and getattr(args, "kodak_pair", None):
-        id1, id2 = args.kodak_pair
-        return f"kodim{id1:02d}.png, kodim{id2:02d}.png"
+    if bench_type in ["optical_flow", "optflow", "optical_flow_benchmark"]:
+        if getattr(args, "kodak_pair", None):
+            id1, id2 = args.kodak_pair
+            return f"kodim{id1:02d}.png, kodim{id2:02d}.png"
+        mb_scenes = resolve_middlebury_scenes(args)
+        if mb_scenes:
+            return f"middlebury:{mb_scenes[0]}"
 
     kodak_id = getattr(args, "kodak_id", 1)
     return f"kodim{kodak_id:02d}.png"
@@ -731,9 +1093,12 @@ def compile_fft_benchmark(env):
     print(f"[+] Successfully compiled: {elf}")
     return elf
 
-def compile_optical_flow(env, width=32, height=32, use_kodak=True, kodak_id=1, shift_x=1, shift_y=1, kodak_pair=None, image_path=None):
+def compile_optical_flow(env, width=32, height=32, use_kodak=True, kodak_id=1, shift_x=1, shift_y=1,
+                         kodak_pair=None, image_path=None, frame1_path=None, frame2_path=None,
+                         middlebury_scene=None, use_thumbnails=False, crop_frames=False,
+                         dataset_desc=None, output_elf=None, display_name=None):
     src = os.path.join(BENCHMARKS_DIR, "edge_detection", "optical_flow_benchmark.c")
-    elf = os.path.join(BENCHMARKS_DIR, "edge_detection", "optical_flow_benchmark.riscv")
+    elf = output_elf if output_elf else os.path.join(BENCHMARKS_DIR, "edge_detection", "optical_flow_benchmark.riscv")
     gcc_path = get_gcc_path(env)
     edge_dir = os.path.join(BENCHMARKS_DIR, "edge_detection")
 
@@ -751,9 +1116,24 @@ def compile_optical_flow(env, width=32, height=32, use_kodak=True, kodak_id=1, s
     ]
 
     if use_kodak:
-        generate_optical_flow_header(width=width, height=height, kodak_id=kodak_id, shift_x=shift_x, shift_y=shift_y, pair=kodak_pair, image_path=image_path)
+        generate_optical_flow_header(
+            width=width,
+            height=height,
+            kodak_id=kodak_id,
+            shift_x=shift_x,
+            shift_y=shift_y,
+            pair=kodak_pair,
+            image_path=image_path,
+            frame1_path=frame1_path,
+            frame2_path=frame2_path,
+            middlebury_scene=middlebury_scene,
+            use_thumbnails=use_thumbnails,
+            crop_frames=crop_frames,
+            dataset_desc=dataset_desc
+        )
         cmd.append("-DUSE_KODAK_DATA")
-        print(f"[+] Compiling Optical Flow with Kodak dataset ({width}x{height}): {src}")
+        disp = display_name or dataset_desc or (f"Middlebury {middlebury_scene}" if middlebury_scene else f"Kodak #{kodak_id:02d}")
+        print(f"[+] Compiling Optical Flow with dataset '{disp}' ({width}x{height}): {src}")
     else:
         print(f"[+] Compiling Optical Flow benchmark with synthetic frames ({width}x{height}): {src}")
 
@@ -781,13 +1161,22 @@ def compile_benchmark(env, bench_type="edge_detection", width=32, height=32,
                       kernel_iterations=1, use_kodak=True, kodak_id=1,
                       shift_x=1, shift_y=1, kodak_pair=None, image_path=None,
                       flush_cache=True, flush_size_kb=256,
-                      output_elf=None, image_display_name=None):
+                      output_elf=None, image_display_name=None,
+                      middlebury_scene=None, frame1_path=None, frame2_path=None,
+                      use_thumbnails=False, crop_frames=False, dataset_desc=None):
     if bench_type in ["fft", "fft_benchmark"]:
         return compile_fft_benchmark(env)
     elif bench_type in ["optical_flow", "optflow", "optical_flow_benchmark"]:
         return compile_optical_flow(env, width=width, height=height, use_kodak=use_kodak,
                                     kodak_id=kodak_id, shift_x=shift_x, shift_y=shift_y,
-                                    kodak_pair=kodak_pair, image_path=image_path)
+                                    kodak_pair=kodak_pair, image_path=image_path,
+                                    frame1_path=frame1_path, frame2_path=frame2_path,
+                                    middlebury_scene=middlebury_scene,
+                                    use_thumbnails=use_thumbnails,
+                                    crop_frames=crop_frames,
+                                    dataset_desc=dataset_desc,
+                                    output_elf=output_elf,
+                                    display_name=image_display_name)
     else:
         return compile_edge_detection(env, width=width, height=height,
                                       kernel_iterations=kernel_iterations,
@@ -1060,6 +1449,13 @@ def main():
     parser.add_argument("--synthetic-frames", action="store_true", help="Force synthetic checkerboard frames instead of Kodak/input images")
     parser.add_argument("--no-cache-flush", action="store_true", help="Disable cache flush before benchmarking (default: False, cache is flushed)")
     parser.add_argument("--flush-size-kb", type=int, default=256, help="Cache flush buffer size in KB (default: 256)")
+    parser.add_argument("--middlebury", "--scene", dest="middlebury", default=None, help="Middlebury 2021 scene name or index (1-24, e.g. 'artroom1', '1', or 'all') for optical flow/stereo benchmark")
+    parser.add_argument("--middlebury-range", nargs="+", default=None, help="Middlebury 2021 scene range (e.g. '1 5', '1-5', 'artroom1..chess1') to benchmark")
+    parser.add_argument("--middlebury-scenes", "--scenes", nargs="+", default=None, help="List of Middlebury 2021 scene names or indices to benchmark")
+    parser.add_argument("--middlebury-thumbnails", "--thumbs", action="store_true", help="Use lightweight 20%% thumbnails from Middlebury dataset instead of full-res PNGs")
+    parser.add_argument("--list-middlebury", "--list-scenes", action="store_true", help="List all 24 available Middlebury 2021 scenes and exit")
+    parser.add_argument("--crop-frames", action="store_true", help="Use center crop instead of bilinear resize when preparing optical flow frames")
+    parser.add_argument("--dataset", choices=["auto", "kodak", "middlebury"], default="auto", help="Dataset source preference for optical flow / benchmarks (default: auto)")
     parser.add_argument("--build-missing", action="store_true", help="Automatically build missing Verilator binaries")
     parser.add_argument("--timeout", type=int, default=300, help="Per-run timeout in seconds (default: 300)")
     parser.add_argument("--json", action="store_true", help="Also export JSON reports alongside CSV files")
@@ -1068,6 +1464,10 @@ def main():
 
     if args.threads < 1:
         parser.error("--threads must be at least 1")
+
+    if args.list_middlebury:
+        print_middlebury_scenes()
+        sys.exit(0)
 
     discovered_configs = discover_scala_configs()
     compiled_verilator = find_compiled_verilator_configs()
@@ -1082,11 +1482,17 @@ def main():
     env = get_env()
 
     # Determine benchmarks to run
+    has_explicit_bench = any(arg.startswith(("--benchmark", "--algorithm")) for arg in sys.argv)
+    has_middlebury_req = bool(args.middlebury or args.middlebury_range or args.middlebury_scenes or args.dataset == "middlebury")
+
     if args.benchmark == "all":
-        benchmarks_to_run = ["edge_detection", "fft_benchmark", "optical_flow_benchmark"]
+        if not has_explicit_bench and has_middlebury_req:
+            benchmarks_to_run = ["optical_flow_benchmark"]
+        else:
+            benchmarks_to_run = ["edge_detection", "fft_benchmark", "optical_flow_benchmark"]
     elif args.benchmark in ["fft", "fft_benchmark"]:
         benchmarks_to_run = ["fft_benchmark"]
-    elif args.benchmark in ["optical_flow", "optical_flow_benchmark"]:
+    elif args.benchmark in ["optical_flow", "optflow", "optical_flow_benchmark"]:
         benchmarks_to_run = ["optical_flow_benchmark"]
     else:
         benchmarks_to_run = ["edge_detection"]
@@ -1138,27 +1544,46 @@ def main():
             )
             compiled_edge_elfs.append((img_info, elf))
 
-    # Pre-compile other benchmarks if requested
-    compiled_other_elfs = {}
-    for bench in benchmarks_to_run:
-        if bench == "edge_detection":
-            continue
-        elf = compile_benchmark(
-            env,
-            bench_type=bench,
-            width=args.img_width,
-            height=args.img_height,
-            kernel_iterations=args.kernel_iterations,
-            use_kodak=(not args.synthetic_frames),
-            kodak_id=args.kodak_id,
-            shift_x=args.shift_x,
-            shift_y=args.shift_y,
-            kodak_pair=args.kodak_pair,
-            image_path=single_image_path,
-            flush_cache=(not args.no_cache_flush),
-            flush_size_kb=args.flush_size_kb
-        )
-        compiled_other_elfs[bench] = elf
+    # Pre-compile optical flow benchmark if requested
+    compiled_flow_elfs = []
+    if "optical_flow_benchmark" in benchmarks_to_run:
+        flow_tasks = resolve_optical_flow_tasks(args)
+        num_flow = len(flow_tasks)
+        if num_flow > 1:
+            print(f"[+] Compiling Optical Flow benchmark for {num_flow} target image set(s)...")
+        for task in flow_tasks:
+            disp = task["display_name"]
+            if num_flow > 1:
+                safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', os.path.splitext(disp)[0])
+                elf_target = os.path.join(BENCHMARKS_DIR, "edge_detection", f"optical_flow_benchmark_{safe_name}.riscv")
+            else:
+                elf_target = os.path.join(BENCHMARKS_DIR, "edge_detection", "optical_flow_benchmark.riscv")
+
+            elf = compile_optical_flow(
+                env,
+                width=args.img_width,
+                height=args.img_height,
+                use_kodak=(not args.synthetic_frames),
+                kodak_id=task.get("kodak_id", args.kodak_id),
+                shift_x=args.shift_x,
+                shift_y=args.shift_y,
+                kodak_pair=task.get("kodak_pair"),
+                image_path=task.get("image_path"),
+                frame1_path=task.get("frame1_path"),
+                frame2_path=task.get("frame2_path"),
+                middlebury_scene=task.get("middlebury_scene"),
+                use_thumbnails=args.middlebury_thumbnails,
+                crop_frames=args.crop_frames,
+                dataset_desc=task.get("desc"),
+                output_elf=elf_target,
+                display_name=disp
+            )
+            compiled_flow_elfs.append((task, elf))
+
+    # Pre-compile FFT benchmark if requested
+    compiled_fft_elf = None
+    if "fft_benchmark" in benchmarks_to_run:
+        compiled_fft_elf = compile_fft_benchmark(env)
 
     # Determine target configs
     if args.configs:
@@ -1206,9 +1631,27 @@ def main():
                         res["image"] = img_disp
                         res["run_iteration"] = run_idx
                         benchmark_results.append(res)
+            elif bench in ["optical_flow", "optflow", "optical_flow_benchmark"]:
+                for task_info, elf_path in compiled_flow_elfs:
+                    img_disp = task_info.get("csv_image_name", task_info["display_name"])
+                    for config in target_configs:
+                        if args.simulator == "spike":
+                            res = run_spike_sim(config, bench, elf_path, env, timeout=args.timeout)
+                        elif args.simulator == "verilator":
+                            res = run_verilator_sim(config, bench, elf_path, env, build_missing=args.build_missing, timeout=args.timeout, threads=args.threads, rebuild=args.rebuild)
+                        else: # auto
+                            if config in compiled_verilator or args.build_missing or args.rebuild:
+                                res = run_verilator_sim(config, bench, elf_path, env, build_missing=args.build_missing, timeout=args.timeout, threads=args.threads, rebuild=args.rebuild)
+                            else:
+                                print(f"[!] Verilator binary not compiled for {config}. Falling back to Spike...")
+                                res = run_spike_sim(config, bench, elf_path, env, timeout=args.timeout)
+
+                        res["image"] = img_disp
+                        res["run_iteration"] = run_idx
+                        benchmark_results.append(res)
             else:
-                elf_path = compiled_other_elfs[bench]
-                img_disp = get_benchmark_image_name(bench, args, resolved_image_name)
+                elf_path = compiled_fft_elf
+                img_disp = "N/A"
                 for config in target_configs:
                     if args.simulator == "spike":
                         res = run_spike_sim(config, bench, elf_path, env, timeout=args.timeout)

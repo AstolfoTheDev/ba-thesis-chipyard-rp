@@ -41,3 +41,5 @@ venv/
 # Temporary & Log Files
 *.log
 *.tmp
+middlebury_images/
+

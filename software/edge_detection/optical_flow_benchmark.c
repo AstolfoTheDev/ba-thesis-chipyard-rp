@@ -76,7 +76,11 @@ static inline int idx(int x, int y) {
 // Generate two video test frames with motion between them
 static void init_input_frames(void) {
 #ifdef USE_KODAK_DATA
+#ifdef OPTICAL_FLOW_DATASET_NAME
+    printf("[INFO] Loading input frames from %s...\n", OPTICAL_FLOW_DATASET_NAME);
+#else
     printf("[INFO] Loading input frames from Kodak Image Dataset...\n");
+#endif
     for (int i = 0; i < NPIX; i++) {
         frame1[i] = kodak_frame1[i];
         frame2[i] = kodak_frame2[i];
