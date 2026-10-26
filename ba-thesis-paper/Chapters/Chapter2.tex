@@ -44,6 +44,28 @@ The processes
 
 \subsection{In-Order vs. Out-of-Order Execution Paradigms}
 
+Rocket exhibits the classic 5-stage in-order pipeline: fetch, decode, execute, memory, writeback.
+Every instruction is broken into these 5 sequential steps.
+
+\begin{enumerate}
+  \item \textbf{Fetch} The first step of the pipeline.
+  It retrieves the instruction from memory using the adress in the program counter (PC) and increments the PC afterwards.
+  Memory can be SRAM or an instruction cache.
+  The PC is a register which contains the address that is presented to the instruction memory at the beginning of a clock cycle.
+  While the cycle is running, the instruction is read from memory while the next PC is being calculated.
+  The PC is being calculated by adding the value of 4 to the current PC and then deciding if that new value or that of a branch/jump calculation is to be used.
+  In the original RISC design, every instruction is 4 bytes long.
+  \item \textbf{Decode} Decodes the opcode of the instruction and reads the needed values from the operand file.
+  If the underlying logic of the decoded instruction cannot be executed, the instruction is not passed down the pipeline and thus the pipeline stalls.
+  During a stall, input flip flops won't accept new bits, so no new calculations will take place during this cycle.
+  If the decoded instruction is a jump or a branch, the target address is computed while the register file is read.
+  In the following cycle, the branch condition is computed.
+  \item \textbf{Execute} This stage contains an ALU and a bit shifter.
+  It might also contain a multiple cycle multiplier and divider
+\end{enumerate}
+
+
+
 \subsection{Cache Subsystems, Latency Tolerance & MSHRs}
 
 \subsection{On Chip Interconects (TileLink & AXi4)}
