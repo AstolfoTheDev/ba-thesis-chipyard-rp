@@ -13,11 +13,32 @@
 
 % differences between Risc-V and ARM
 
-There are a myriad of differences between Risc-V and ARM. 
+
+
+
+There are a myriad of differences between Risc-V and ARM. % https://www.wevolver.com/article/risc-v-vs-arm source
 The most glaring one ist that the Instruction Set Architecture (ISA) of RISC-V is open while ARM's ISA is closed. Having a closed ISA means that it is proprietary and controlled by specific companies, i.e. the ARM Holdings company, which issues the licences to companies.
-This leads to reliability but development and research is hindered due to the companys control and licencing cost. Open ISA's are open source, allowing developers to freely develop and customize the architercture to fit their needs
+This leads to reliability but development and research is hindered due to the companys control and licencing cost. Open ISA's are open source, allowing developers to freely develop and customize the architercture to fit their needs. % cite this 
+This flexibility has lead to widespread adoption by major tech companies like IBM, Nvidia and Western Digital (WD). 
 
 \subsection{Privilege Architecture & Executions Modes} % (M-Mode vs. S/U-Mode)
+
+In order to provide secure isolation between the system and the user on the software level, The RISC-V ISA defines a hierarchical model which consists of three different hardware privilege modes: User Mode (U-mode), Supervisor Mode (S-Mode) and Machine Mode (M-Mode). 
+These modes dictate the scope of instructions that are accessible, the memory regions and control status registers (CSR).
+
+\subsubsection{Privilege Modes}
+
+The highest level of privilege belongs to the machine mode.
+It is the only mode which is mandatory for every RISC-V implementation.
+Operations executed in this mode have unrestricted access to the hardware, the physical memory Map and core-level configuration registers.
+Since M-Mode code interacts with the microarchitecture without the need for memory virtualisation or access restrictions, low-level firmware, hardware initialization routines and baremetal code runs exclusively on this level.
+
+The supervisor mode (S-Mode) is designed to host modern operating system kernels, such as Linux. It supports paged virtual memory subsystems (such as Sv39) which are managed via the supervisor adress and translation and protection register (satp for short). 
+The supervisor mode enforces memory isolation across different user tasks while also restricting the operating system from directly modifying core-critical M-mode parameters.
+
+As the name implies, U-Mode is used for the unprivileged user space applications.
+The processes
+
 
 \section{Microarchitectural Foundations & Memory Hierarchy}
 
@@ -46,5 +67,17 @@ This leads to reliability but development and research is hindered due to the co
 \subsection{FPGA Prototyping & Baremetal Benchmarking Approaches}
 
 \section{Summary and Identified Research Gap}
+
+
+
+
+
+Another difference is how both platforms deal with software fragmentation. % Asanović, "RISC-V Profiles", RISC-V International 
+Software fragmentation describes the issue that occurs when a software is divided into multiple different versions that are incompatible with each other. 
+ARM handles this issue by imposing a strict limit on custom Instructions for connstrained embededd cores (see Cortex-M33 and M55).
+Only recently has ARM introduced very limited "custom instructions"
+This greatly limits and restricts software customizablility.
+RISC-V on the other hand includes dedicated custom opcode field.
+This makes RISC-V uniquely qualified for domain-specific accelerators (DSAs) in Machine Learning, cryptography and signal processing. However, the possibility of software fragmentation is thus greatly increased.
 
 
