@@ -83,7 +83,22 @@ Every instruction is broken into these 5 sequential steps.
   \item \textbf{Writeback:} During writeback, both single-cycle and two-cycle instructions write their results into the register file.
 \end{enumerate}
 
+\subsubsection{Hazards}
 
+When the pipeline produces wrong results we call it a hazard.
+
+\begin{itemize}
+  \item \textbf{Structural hazards:} A situation in which two instructions try to use the same ressources at the same time.
+    This can be avoided by replicating hardware. % TODO: elaborate
+  \item \textbf{Data hazards:} If an instruction attempts to use data before said data is available in the register file, we call that a data hazard.
+    \begin{itemize}
+      \item \textbf{Operand Forwarding:} If a subsequent instruction needs the result of the one that came before it, the pipeline can stall due to timeconsuming read/write-operations.
+        This can be fixed by bypassing the write/read stage and forwarding the result of the previous instruction to the execute stage of the following instruction. % TODO: add an example here to illustrate maybe some graphics
+        On actual hardware the control unit of the CPU must implement the logic required to catch these dependencies in order to enact the bypass.
+      \item \textbf{Pipeline interlock}
+    \end{itemize}
+  \item \textbf{Control hazards:}
+  \end{itemize}
 
 \subsection{Cache Subsystems, Latency Tolerance & MSHRs}
 
