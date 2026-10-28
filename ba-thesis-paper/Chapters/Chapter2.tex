@@ -47,7 +47,7 @@ The processes
 Rocket exhibits the classic 5-stage in-order pipeline: fetch, decode, execute, memory, writeback.
 Every instruction is broken into these 5 sequential steps.
 
-\begin{enumerate}
+\begin{enumerate} % maybe reformat this into subsubsections
   \item \textbf{Fetch} The first step of the pipeline.
   It retrieves the instruction from memory using the adress in the program counter (PC) and increments the PC afterwards.
   Memory can be SRAM or an instruction cache.
@@ -61,7 +61,11 @@ Every instruction is broken into these 5 sequential steps.
   If the decoded instruction is a jump or a branch, the target address is computed while the register file is read.
   In the following cycle, the branch condition is computed.
   \item \textbf{Execute} This stage contains an ALU and a bit shifter.
-  It might also contain a multiple cycle multiplier and divider
+  It might also contain a multiple cycle multiplier and divider.
+    The ALU provides Boolean functions such as XOR and performs the addition and subtraction of integers.
+    It also provides status bits which indicate if the result was 0 or if an overflow occcured.
+    Instructions can be classed into three different categories based on latency.
+    Latency describes the time it takes for an instruction from start to finish.
 \end{enumerate}
 
 
