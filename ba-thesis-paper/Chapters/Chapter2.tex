@@ -65,7 +65,22 @@ Every instruction is broken into these 5 sequential steps.
     The ALU provides Boolean functions such as XOR and performs the addition and subtraction of integers.
     It also provides status bits which indicate if the result was 0 or if an overflow occcured.
     Instructions can be classed into three different categories based on latency.
-    Latency describes the time it takes for an instruction from start to finish.
+    Latency describes the time it takes for an instruction to go from start to finish.
+    \begin{itemize}
+      \item \textbf{Register-Register-Operations:} Includes add, subtract, compare and logical operations.
+        During this step of the pipeline, the two given arguments are passed to a ALU, which spits out the result by the end of the stage.
+        These operations have a single-cycle latency.
+      \item \textbf{Memory Reference:} Includes all the loads from memory.
+        The ALU added the two arguments, which include a register and a constant offset to produce a virtual adress by the end of the cycle.
+        These operations have a two-cycle latency.
+      \item \textbf{Multi cycle instructions:} Includes dividing and multiplying integers and all floating-point operations.
+        These types of operations feed their arguments to the multi-cycle multiply- and divde units.
+        The remainder of the pipeline can continue working while the multiply/divide blocks are busy.
+        In order to keep the writeback stage simple, these blocks write their results to a seperate set of registers.
+    \end{itemize}
+  \item \textbf{Memory access:} In this stage, single-cycle latency instructions are simply forwarded to the writeback stage.
+    This guarantees that both one and two cycle latency instructions write their results at the same stage of the pipeline so that only a singular port of the register file is used and is always available.
+  \item \textbf{Writeback:} During writeback, both single-cycle and two-cycle instructions write their results into the register file.
 \end{enumerate}
 
 
@@ -107,3 +122,4 @@ RISC-V on the other hand includes dedicated custom opcode field.
 This makes RISC-V uniquely qualified for domain-specific accelerators (DSAs) in Machine Learning, cryptography and signal processing. However, the possibility of software fragmentation is thus greatly increased.
 
 
+% source for rocket and boom https://www2.eecs.berkeley.edu/Pubs/TechRpts/2016/Archive/EECS-2016-17.pdf
