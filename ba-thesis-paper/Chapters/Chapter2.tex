@@ -97,10 +97,80 @@ When the pipeline produces wrong results we call it a hazard.
         On actual hardware the control unit of the CPU must implement the logic required to catch these dependencies in order to enact the bypass.
       \item \textbf{Pipeline interlock}
     \end{itemize}
-  \item \textbf{Control hazards:}
+  \item \textbf{Control hazards:} A control hazard occurs when the pipeline can't figure out the next instruction adress which needs to be fetched in the following cycle.
+    This happens because the control flow instruction (i.e. onditional branch, direct jump, indirect jump, exception) has not been decoded or executed.
+    In a processor with a pipeline, fetching occurs at every clock cycle.
+    This can be simply mitigated by waiting until the target adress and branch condition is known. This leads to so called "bubbles" - cycles where nothing is being done (NOP cycles).
+    Since processing power is wasted, this is not a desirable solution.
+    There are multiple hazard mitigation strategies:
+    Static predictions when hardware prediction tables are missing or disabled. \textit{Predict Not-Taken} assumes the sequential fetch (PC + 4).
+    \textit{Backward Taken } assumes that a backward branch will be taken.
+    A backward branch is one that has a taget adress that is lower than its own adress.
+    \textit{Forward Not-Taken} assumes the forward branch will not be taken.
+    The Rocket core mitigates control hazards by using a 28-entry wide branch target buffer (BTB),
+    a 6-entry wide Return Adress Stack (RAS) and a 512-entry wide branch history table (BHT).
+    If the branch target buffer predicts a target during the instruction fetch stage, Rocket redirects the prorgam coutner with minimal delay.
+    Branch mispredictions are detected at the memory stage of the pipeline. 
+    Upon detecting a branch misprediction, rocket flushes the pipeline, meaning any and all instructions in the decode and execute stage are discarded,
+    leading to a fixed 3-cycle misprediction penalty.
+    Since BOOM employs a decoupled, out-of-order superscalar pipeline, control hazard prediction is handled differently.
+    BOOM fields a two-tier predictor consisting of a fast next-line predictor who generates single-cycle predictions
+    and a multiple-stage backing predictor (BTP) who runs a "tagged geometric histroy with loop predictor" algorithm  which can override the next-line predictor at stage F4.
   \end{itemize}
 
+  % =====================================================================================
+
 \subsection{Cache Subsystems, Latency Tolerance & MSHRs}
+
+\subsubsection{Memory Wall & The Average Memory Access Time (AMAT) Model}
+
+High performance computing is constrained by what is known as the memory hole program \cite{wulf1995memory}.
+This problem describes the growing difference between core processing frequency and off-chip dynamic dram latency.
+An arithmetic operation within an execution unit takes only a single cycle to complete but retrieving an operand from off-chip memory causes a latency of tens to hundreds of clock-cycles.
+In order to mitigate this problem, modern systems rely on multi-level cache hierarchies, non-blocking cache controllers and latency-tolerant execution paradigms.
+
+We can quantify the effectiveness of a memory system by using the average memory acess time (AMAT) model: 
+
+\begin{equation}
+  \text{AMAT} = t_{\text{L1\_hit}} + \text{MR}_{\text{L1}} \times \left( t_{\text{L2\_hit}} + \text{MR}_{\text{L2\_local}} \times t_{\text{DRAM}} \right)
+\end{equation}
+
+The letter $t$ denotes the acess latency and MR represents the cache miss rate.
+In order to keep AMAT low cache parameters such as line-size, set-associativity and total storage capacity are scaled up.
+By increasing associativity and capacity conflict and capacity misses are eliminated,
+which makes sure that computationally intensive working sets remain in the fast on-chip static RAM and don't need to be moved to off-chip memory.
+Chipyard usually implements secondary caching by using the SiFive inclusive L2 cache generator.
+
+\subsubsection{Blocking versus Non-Blocking Caches}
+ Classic scalar processors implement blocking caches.
+ If a blocking cache find a miss on a load operation,
+ the cache controller halts and further memory operations are blocked.
+ This forces the entire pipeline to stall until the line refill completes.
+ Subsequently, even istructions that are independent who target lines which are already present in the cache are barred from proceding.
+
+ In order to deal with this issue, non-blocking caches are introduced.\cite{kroft1981lockup}
+ These types of caches offer two important microarchitectural capabilities:
+
+ \begin{enumerate} %TODO: write more here
+   \item \textbf{Miss-Under-Miss:} The cache maintains multiple concurrent in-flight memory requests to different memory blocks,
+     thus directly exploiting memory-level parallelism across the memory bus.
+   \item \textbf{Hit-Under-Miss:} The cache controller cobtinues to service cache hits for downstream instructions while an outstanding miss transaction is asynchronously fetched from deeper memory tiers.
+ \end{enumerate}
+
+\subsubsection{Miss Status Holding Registers (MSHRs)}
+
+The core foundation of a non-blocking cache is rooted ib the mshr file.
+Each miss status holding register is a specialized piece of hardware that tracks entries that store the metadata of an active, outstanding cache refill:
+
+Primary vs. Secondary Misses (Miss Merging)
+The MSHR File, Replay Queues, and Structural Limits
+
+\subsubsection{Latency Tolerance & Memory-Level Parallelism}
+
+\subsubsection{SiFive Inclusive L2 cache versus Broadcast manager}
+
+
+% ====================================================================
 
 \subsection{On Chip Interconects (TileLink & AXi4)}
 
@@ -120,7 +190,7 @@ When the pipeline produces wrong results we call it a hazard.
 
 \subsection{Cycle-Exact Simulation (Verilator) vs ISA Emulation (Spike/QEMU)}
 
-\subsection{FPGA Prototyping & Baremetal Benchmarking Approaches}
+%\subsection{FPGA Prototyping & Baremetal Benchmarking Approaches}
 
 \section{Summary and Identified Research Gap}
 
