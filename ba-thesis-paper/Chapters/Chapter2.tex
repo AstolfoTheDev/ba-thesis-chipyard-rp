@@ -9,7 +9,7 @@
 
 \section{The RISC-V Instruction Set Architecture}
 
-\subsection{Modular Base ISA & Extensions (RV64C)}
+\subsection{Modular Base ISA /& Extensions (RV64C)}
 
 % differences between Risc-V and ARM
 
@@ -21,7 +21,7 @@ The most glaring one ist that the Instruction Set Architecture (ISA) of RISC-V i
 This leads to reliability but development and research is hindered due to the companys control and licencing cost. Open ISA's are open source, allowing developers to freely develop and customize the architercture to fit their needs. % cite this 
 This flexibility has lead to widespread adoption by major tech companies like IBM, Nvidia and Western Digital (WD). 
 
-\subsection{Privilege Architecture & Executions Modes} % (M-Mode vs. S/U-Mode)
+\subsection{Privilege Architecture /& Executions Modes} % (M-Mode vs. S/U-Mode)
 
 In order to provide secure isolation between the system and the user on the software level, The RISC-V ISA defines a hierarchical model which consists of three different hardware privilege modes: User Mode (U-mode), Supervisor Mode (S-Mode) and Machine Mode (M-Mode). 
 These modes dictate the scope of instructions that are accessible, the memory regions and control status registers (CSR).
@@ -40,7 +40,7 @@ As the name implies, U-Mode is used for the unprivileged user space applications
 The processes
 
 
-\section{Microarchitectural Foundations & Memory Hierarchy}
+\section{Microarchitectural Foundations /& Memory Hierarchy}
 
 \subsection{In-Order vs. Out-of-Order Execution Paradigms}
 
@@ -120,9 +120,9 @@ When the pipeline produces wrong results we call it a hazard.
 
   % =====================================================================================
 
-\subsection{Cache Subsystems, Latency Tolerance & MSHRs}
+\subsection{Cache Subsystems, Latency Tolerance /& MSHRs}
 
-\subsubsection{Memory Wall & The Average Memory Access Time (AMAT) Model}
+\subsubsection{Memory Wall /& The Average Memory Access Time (AMAT) Model}
 
 High performance computing is constrained by what is known as the memory hole program \cite{wulf1995memory}.
 This problem describes the growing difference between core processing frequency and off-chip dynamic dram latency.
@@ -161,30 +161,63 @@ Chipyard usually implements secondary caching by using the SiFive inclusive L2 c
 
 The core foundation of a non-blocking cache is rooted ib the mshr file.
 Each miss status holding register is a specialized piece of hardware that tracks entries that store the metadata of an active, outstanding cache refill:
+When a load misses in the cache tags and no request for that specific block exists, a free mshr is allocated.
+The mshr records the block tag, destination physical register or reorder buffer tag and byte offset before dispatching an acquisition transaction across the system.
+This process is called \textit{primary miss processing}.
+If subseqeuent instructions reference the same in-flight cache line before the refill returns,
+the controller avoids issuing redundant bus rtansactions by instead merging the secondary miss into the existing replay queue of the mshr.
+Upon data return, every pending request within the queue are satisfied with a singular transaction. 
+This process is called \textit{secondary miss merging}.
+If all the allocated mshr's are busy,
+the cache controller registers a structural hazard and must subsequently stall or reject further incoming memory requests until an active transaction retires.
 
-Primary vs. Secondary Misses (Miss Merging)
-The MSHR File, Replay Queues, and Structural Limits
+\subsubsection{Latency Tolerance in Rocket versus BOOM}
 
-\subsubsection{Latency Tolerance & Memory-Level Parallelism}
+The capability of using non-blocking caches to their full potential is always limited by how processors handle executions. 
+The in-order Rocket core uses a baseline blocking L1 data cache.
+Even if it is linked to a non-blocking interface, Rockets in-order pipeline logic forces a pipeline interlock the moment a subseqeuent instruction needs the load operand. % what is a a load use hazard?
+Long off-chip memory latency means idle pipeline cycles.
 
-\subsubsection{SiFive Inclusive L2 cache versus Broadcast manager}
+%\subsubsection{Latency Tolerance & Memory-Level Parallelism}
+
+%\subsubsection{SiFive Inclusive L2 cache versus Broadcast manager}
 
 
 % ====================================================================
 
-\subsection{On Chip Interconects (TileLink & AXi4)}
+\subsection{On Chip Interconects (TileLink \& AXi4)}
 
-\section{Agile Hardware Construction & Generator Frameworks}
+As system-on-chip \gls{soc} complexity scales upwards the Interconect on the chip becomes a vocal factor when regarding memory bandwidth, latency, and system composability.
+When it comes to modern heterogenous architecture where in-order cores like Rocket are combined with out-of-order superscalar pipelins like BOOM, cache controllers and DMA peripherals,
+the interconnect needs to guarantee deadlock-free packet transportation while preserving cache coherency.
+Chipyard provides two complementary bus protocols: The industry-standard AXI4 interface and the native, cache-coherent TileLink.
+
+\subsubsection{The TileLink Interconnect Protocol}
+
+TileLink is a bus protocol which was specifially designed to support the integration of high performance RISC-V soc. \cite{cook2017tilelink}
+TileLink is different from other bus protocols that rely on ad-hoc sideband wiring for multiprocessor synchronization because it is mathematically structured around a directed acyclic graph channel model in order to guarantee deadlock freedom.
+TileLink defines five independent, decoupled communication channels from A to E:
+
+\begin{enumerate}
+  \item \textbf{Channel A Master $\rightarrow$ Slave:} This channel transmits operation requests like reads (i.e. Get),
+    writes such as \textit{PutFullData}, \textit{PutPartialData} and cache permission acquisitions like \textit{AcquireBlock} and \textit{AcquirePerm}.
+  \item \textbf{Channel B Slave $\rightarrow$ Master:} Carries coherence probe requests from outer cache managers to interrogate or downgrade lines held within private L1 caches.
+  \item \textbf{Channel C Master $\rightarrow$ Slave:} transmits probe acknowledgements like \textit{ProbeAck} and \textit{ProbeAckData} or voluntary writeback evictions (\textit{Release}, \textit{ReleaseData})
+\item \textbf{Channel D Slave $\rightarrow$ Master:} Returns read data bursts and transaction acknowledgements.
+  \item \textbf{Channel E Master $\rightarrow$ Slave:} Delivers a single-wire final grant acknowledgement from the master, thus resolving serialization races between concurrent requesters without a centralized bus arbitration.
+\end{enumerate}
+
+\section{Agile Hardware Construction \& Generator Frameworks}
 
 \subsection{Classical RTL (Verilog/VHDL) vs Metaprogrammed Generators (Chisel/FIRRTL)}
 
-\subsection{The Chipyard Ecosystem & Integrated Generators}
+\subsection{The Chipyard Ecosystem \& Integrated Generators}
 
 \section{Open Source SOC Ecosystems}
 
 \subsection{Survey of Frameworks (Chipyard, PULP/PULPino, OpenTitan)}
 
-\subsection{Comparative Analysis & Ecosystem Taxonomy}
+\subsection{Comparative Analysis /& Ecosystem Taxonomy}
 
 \section{Simulation, Emulation, and Evaluation Methodologies}
 
