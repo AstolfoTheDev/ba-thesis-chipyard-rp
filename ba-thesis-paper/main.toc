@@ -9,26 +9,50 @@
 \contentsline {chapter}{List of Figures}{vii}{dummy.12}%
 \contentsline {chapter}{List of Tables}{viii}{dummy.14}%
 \contentsline {chapter}{List of Abbreviations}{ix}{chapter*.15}%
-\contentsline {chapter}{List of Mathematical Symbols}{x}{chapter*.16}%
-\contentsline {chapter}{\numberline {1}Introduction}{1}{chapter.17}%
-\contentsline {section}{\numberline {1.1}Context and Motivation}{1}{section.18}%
-\contentsline {section}{\numberline {1.2}Research questions andchallenges}{3}{section.19}%
-\contentsline {section}{\numberline {1.3}Research Methodology}{4}{section.28}%
-\contentsline {subsection}{\numberline {1.3.1}Architectural Design in Chisel}{5}{subsection.29}%
-\contentsline {subsection}{\numberline {1.3.2}Bare-Metal Software Infrastructure and Custom Runtime}{5}{subsection.34}%
-\contentsline {subsection}{\numberline {1.3.3}Cycle-Exact Software Simulation via Verilator}{6}{subsection.35}%
-\contentsline {subsection}{\numberline {1.3.4}Automated Design Space Exploration Pipeline}{6}{subsection.36}%
-\contentsline {subsection}{\numberline {1.3.5}Physical Synthesis and Implementation on FPGA}{6}{subsection.37}%
-\contentsline {section}{\numberline {1.4}Contributions}{6}{section.38}%
-\contentsline {section}{\numberline {1.5}Outline and Roadmap}{7}{section.44}%
-\contentsline {chapter}{\numberline {2}Background and Related Work}{9}{chapter.45}%
-\contentsline {chapter}{\numberline {3}Methodology}{10}{chapter.46}%
-\contentsline {chapter}{\numberline {4}Evaluation Setup}{12}{chapter.48}%
-\contentsline {chapter}{\numberline {5}Experimental Results}{14}{chapter.50}%
-\contentsline {chapter}{\numberline {6}Conclusions and Future Directions}{15}{chapter.51}%
-\contentsline {section}{\numberline {6.1}Contributions}{15}{section.52}%
-\contentsline {section}{\numberline {6.2}Limitations}{15}{section.53}%
-\contentsline {section}{\numberline {6.3}Future directions}{15}{section.54}%
+\contentsline {chapter}{List of Mathematical Symbols}{x}{chapter*.18}%
+\contentsline {chapter}{\numberline {1}Introduction}{1}{chapter.19}%
+\contentsline {section}{\numberline {1.1}Context and Motivation}{1}{section.20}%
+\contentsline {section}{\numberline {1.2}Research questions andchallenges}{3}{section.21}%
+\contentsline {section}{\numberline {1.3}Research Methodology}{4}{section.30}%
+\contentsline {subsection}{\numberline {1.3.1}Architectural Design in Chisel}{5}{subsection.31}%
+\contentsline {subsection}{\numberline {1.3.2}Bare-Metal Software Infrastructure and Custom Runtime}{5}{subsection.36}%
+\contentsline {subsection}{\numberline {1.3.3}Cycle-Exact Software Simulation via Verilator}{6}{subsection.37}%
+\contentsline {subsection}{\numberline {1.3.4}Automated Design Space Exploration Pipeline}{6}{subsection.38}%
+\contentsline {subsection}{\numberline {1.3.5}Physical Synthesis and Implementation on FPGA}{6}{subsection.39}%
+\contentsline {section}{\numberline {1.4}Contributions}{6}{section.40}%
+\contentsline {section}{\numberline {1.5}Outline and Roadmap}{7}{section.46}%
+\contentsline {chapter}{\numberline {2}Background and Related Work}{9}{chapter.47}%
+\contentsline {section}{\numberline {2.1}The RISC-V Instruction Set Architecture}{9}{section.48}%
+\contentsline {subsection}{\numberline {2.1.1}Modular Base ISA \& Extensions (RV64C)}{9}{subsection.49}%
+\contentsline {subsection}{\numberline {2.1.2}Privilege Architecture \& Execution Modes}{9}{subsection.50}%
+\contentsline {subsubsection}{\numberline {2.1.2.1}Privilege Modes}{9}{subsubsection.51}%
+\contentsline {section}{\numberline {2.2}Microarchitectural Foundations \& Memory Hierarchy}{10}{section.52}%
+\contentsline {subsection}{\numberline {2.2.1}In-Order vs. Out-of-Order Execution Paradigms}{10}{subsection.53}%
+\contentsline {subsubsection}{\numberline {2.2.1.1}Hazards}{11}{subsubsection.59}%
+\contentsline {subsection}{\numberline {2.2.2}Cache Subsystems, Latency Tolerance \& MSHRs}{12}{subsection.60}%
+\contentsline {subsubsection}{\numberline {2.2.2.1}Memory Wall \& The Average Memory Access Time (AMAT) Model}{12}{subsubsection.61}%
+\contentsline {subsubsection}{\numberline {2.2.2.2}Blocking versus Non-Blocking Caches}{12}{subsubsection.63}%
+\contentsline {subsubsection}{\numberline {2.2.2.3}Miss Status Holding Registers (MSHRs)}{13}{subsubsection.66}%
+\contentsline {subsubsection}{\numberline {2.2.2.4}Latency Tolerance in Rocket versus BOOM}{13}{subsubsection.67}%
+\contentsline {subsection}{\numberline {2.2.3}On Chip Interconects (TileLink \& AXi4)}{13}{subsection.68}%
+\contentsline {subsubsection}{\numberline {2.2.3.1}The TileLink Interconnect Protocol}{13}{subsubsection.69}%
+\contentsline {section}{\numberline {2.3}Agile Hardware Construction \& Generator Frameworks}{14}{section.75}%
+\contentsline {subsection}{\numberline {2.3.1}Classical RTL (Verilog/VHDL) vs Metaprogrammed Generators (Chisel/FIRRTL)}{14}{subsection.76}%
+\contentsline {subsection}{\numberline {2.3.2}The Chipyard Ecosystem \& Integrated Generators}{14}{subsection.77}%
+\contentsline {section}{\numberline {2.4}Open Source SOC Ecosystems}{14}{section.78}%
+\contentsline {subsection}{\numberline {2.4.1}Survey of Frameworks (Chipyard, PULP/PULPino, OpenTitan)}{14}{subsection.79}%
+\contentsline {subsection}{\numberline {2.4.2}Comparative Analysis \& Ecosystem Taxonomy}{14}{subsection.80}%
+\contentsline {section}{\numberline {2.5}Simulation, Emulation, and Evaluation Methodologies}{14}{section.81}%
+\contentsline {subsection}{\numberline {2.5.1}Cycle-Exact Simulation (Verilator) vs ISA Emulation (Spike/QEMU)}{14}{subsection.82}%
+\contentsline {section}{\numberline {2.6}Summary and Identified Research Gap}{14}{section.83}%
+\contentsline {chapter}{\numberline {3}Methodology}{15}{chapter.84}%
+\contentsline {chapter}{\numberline {4}Evaluation Setup}{17}{chapter.86}%
+\contentsline {chapter}{\numberline {5}Experimental Results}{19}{chapter.88}%
+\contentsline {chapter}{\numberline {6}Conclusions and Future Directions}{20}{chapter.89}%
+\contentsline {section}{\numberline {6.1}Contributions}{20}{section.90}%
+\contentsline {section}{\numberline {6.2}Limitations}{20}{section.91}%
+\contentsline {section}{\numberline {6.3}Future directions}{20}{section.92}%
 \vspace {2em}
-\contentsline {chapter}{\numberline {A}APPENDIX CHAPTER TITLE}{16}{appendix.55}%
+\contentsline {chapter}{\numberline {A}APPENDIX CHAPTER TITLE}{21}{appendix.93}%
 \vspace {2em}
+\contentsline {chapter}{Bibliography}{22}{dummy.94}%

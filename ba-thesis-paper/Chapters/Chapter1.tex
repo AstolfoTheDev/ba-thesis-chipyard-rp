@@ -143,7 +143,7 @@ To address these challenges systematically, this bachelor thesis formulates four
 
     \item \emph{How effectively do dynamic scheduling, speculative execution, and non-blocking caches with MSHRs in out-of-order cores insulate system performance from off-chip memory 
     latencies when the secondary cache is omitted, compared to the direct stall penalties incurred by the in-order Rocket pipeline?}
-\end{itemize}
+\end{enumerate}
 
 % ----------------------------------------------------------------------------
 \section{Research Methodology}
@@ -152,7 +152,7 @@ To address these challenges systematically, this bachelor thesis formulates four
 The methodology of my thesis is divided into five cohesive phases, as seen below:
 
 \subsection{Architectural Design in Chisel}
-Using the Chipyard framework, a systematic architectural parameter space comprising 24 distinct hardware processor configurations is defined in Scala (`BenchmarkConfigs.scala`). 
+Using the Chipyard framework, a systematic architectural parameter space comprising 24 distinct hardware processor configurations is defined in Scala (\texttt{BenchmarkConfigs.scala}). 
 These entail four processor core families:
 \begin{enumerate}
     \item \textbf{Rocket}: A 1-wide, 5-stage in-order baseline core.
@@ -195,13 +195,13 @@ and deterministic performance profiling across all 24 configurations.
 
 \subsection{Automated Design Space Exploration Pipeline}
 To orchestrate benchmark runs across dozens of processor configurations systematically, 
-I wrote an automated Python test script (`run_edge_detection_benchmark.py`, `boom_dse.py`, and `rocket_fpga_dse.py`).
+I wrote an automated Python test script (\texttt{run\_edge\_detection\_benchmark.py}, \texttt{boom\_dse.py}, and \texttt{rocket\_fpga\_dse.py}).
 The framework cross-compiles target application binaries, 
 executes multi-run simulation sequences, parses UART serial telemetry, validates numerical checksums, 
 and aggregates microarchitectural statistics into structured JSON datasets to be used for later analysis.
 
 \subsection{Physical Synthesis and Implementation on FPGA}
-To validate physical viability beyond simulation, target SoC designs are ported to the **AMD/Xilinx Virtex-7 VC707 Evaluation Kit**. 
+To validate physical viability beyond simulation, target SoC designs are ported to the \textbf{AMD/Xilinx Virtex-7 VC707 Evaluation Kit}. 
 The physical implementation pipeline in AMD Vivado processes generated Verilog netlists, 
 maps clock domains via an MMCM (stepping down the board's 200~MHz differential clock to target frequencies between 50~MHz and 90~MHz), 
 binds top-level pins via physical constraint files (\texttt{.xdc}), bridges the TileLink memory subsystem to an AXI4-compatible DDR3 Memory Interface Generator (MIG) controller, 

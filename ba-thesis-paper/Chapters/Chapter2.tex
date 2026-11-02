@@ -9,7 +9,7 @@
 
 \section{The RISC-V Instruction Set Architecture}
 
-\subsection{Modular Base ISA /& Extensions (RV64C)}
+\subsection{Modular Base ISA \& Extensions (RV64C)}
 
 % differences between Risc-V and ARM
 
@@ -21,7 +21,7 @@ The most glaring one ist that the Instruction Set Architecture (ISA) of RISC-V i
 This leads to reliability but development and research is hindered due to the companys control and licencing cost. Open ISA's are open source, allowing developers to freely develop and customize the architercture to fit their needs. % cite this 
 This flexibility has lead to widespread adoption by major tech companies like IBM, Nvidia and Western Digital (WD). 
 
-\subsection{Privilege Architecture /& Executions Modes} % (M-Mode vs. S/U-Mode)
+\subsection{Privilege Architecture \& Execution Modes} % (M-Mode vs. S/U-Mode)
 
 In order to provide secure isolation between the system and the user on the software level, The RISC-V ISA defines a hierarchical model which consists of three different hardware privilege modes: User Mode (U-mode), Supervisor Mode (S-Mode) and Machine Mode (M-Mode). 
 These modes dictate the scope of instructions that are accessible, the memory regions and control status registers (CSR).
@@ -40,7 +40,7 @@ As the name implies, U-Mode is used for the unprivileged user space applications
 The processes
 
 
-\section{Microarchitectural Foundations /& Memory Hierarchy}
+\section{Microarchitectural Foundations \& Memory Hierarchy}
 
 \subsection{In-Order vs. Out-of-Order Execution Paradigms}
 
@@ -120,9 +120,9 @@ When the pipeline produces wrong results we call it a hazard.
 
   % =====================================================================================
 
-\subsection{Cache Subsystems, Latency Tolerance /& MSHRs}
+\subsection{Cache Subsystems, Latency Tolerance \& MSHRs}
 
-\subsubsection{Memory Wall /& The Average Memory Access Time (AMAT) Model}
+\subsubsection{Memory Wall \& The Average Memory Access Time (AMAT) Model}
 
 High performance computing is constrained by what is known as the memory hole program \cite{wulf1995memory}.
 This problem describes the growing difference between core processing frequency and off-chip dynamic dram latency.
@@ -207,7 +207,16 @@ TileLink defines five independent, decoupled communication channels from A to E:
   \item \textbf{Channel E Master $\rightarrow$ Slave:} Delivers a single-wire final grant acknowledgement from the master, thus resolving serialization races between concurrent requesters without a centralized bus arbitration.
 \end{enumerate}
 
+\subsubsection{The AXI4 Protocol}
+
+While TileLink is responsible for internal coherent traffic,
+the Advanced eXtensible Interface 4 \gls{axi4} which is part of the ARM AMBA4 specification is the industrial standard for peripheral and off-chip memory integration. \cite{arm2011axi4}
+
 \section{Agile Hardware Construction \& Generator Frameworks}
+
+
+
+
 
 \subsection{Classical RTL (Verilog/VHDL) vs Metaprogrammed Generators (Chisel/FIRRTL)}
 
@@ -217,7 +226,7 @@ TileLink defines five independent, decoupled communication channels from A to E:
 
 \subsection{Survey of Frameworks (Chipyard, PULP/PULPino, OpenTitan)}
 
-\subsection{Comparative Analysis /& Ecosystem Taxonomy}
+\subsection{Comparative Analysis \& Ecosystem Taxonomy}
 
 \section{Simulation, Emulation, and Evaluation Methodologies}
 

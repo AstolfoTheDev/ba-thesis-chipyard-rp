@@ -81,7 +81,7 @@
 %\setcitestyle{authoryear,open={((},close={))}}
 \hypersetup{urlcolor=black, colorlinks=true} % Colors hyperlinks in blue - change to black if annoyingv`	
 \title{Thesis title} % Defines the thesis title - don't touch this
-\include{thesis_preamble}
+\input{thesis_preamble}
 
 
 \newacronym{cpu}{CPU}{Central Processing Unit}
@@ -113,17 +113,18 @@
 \newacronym{csr}{CSR}{Control and Status Register}
 \newacronym{sbi}{SBI}{Supervisor Binary Interface}
 \newacronym{os}{OS}{Operating System}
+\newacronym{IC}{IC}{Integrated Circuit}
 
 \DeclareAcronym{eps}{
   short = $\epsilon$ ,
   long  = epsilon (a small positive quantity),
-  class = symbol
+  tag   = symbol
 }
 
 \DeclareAcronym{avc}{
   short = $\alpha_{vc}$ ,
   long  = alpha value for video coding,
-  class = symbol
+  tag   = symbol
 }
 
 
@@ -336,14 +337,13 @@ Verfassen Sie hier Ihren Abstract. Dabei handelt es sich um eine prägnante Zusa
 \addcontentsline{toc}{chapter}{List of Abbreviations}
 \printglossary[type=\acronymtype, title={List of Abbreviations}]
 
-%\addcontentsline{toc}{chapter}{List of Symbols}
 \printacronyms[
-  include-classes = symbol,   % only acronyms with class=symbol
-  name            = {List of Mathematical Symbols},  % heading title
-  heading         = chapter,  % choose: chapter/section/subsection/none
-  add-to-toc      = true      % optional: add an entry to the ToC
+  include = symbol,   % only acronyms with tag=symbol
+  display = all,      % display all declared symbols even if not cited in text
+  name    = {List of Mathematical Symbols},  % heading title
+  heading = chapter*, % choose: chapter/section/subsection/none
 ]
-%\addcontentsline{toc}{chapter}{List of Symbols}
+\addcontentsline{toc}{chapter}{List of Mathematical Symbols}
 
 %----------------------------------------------------------------------------------------
 %	THESIS CONTENT - CHAPTERS

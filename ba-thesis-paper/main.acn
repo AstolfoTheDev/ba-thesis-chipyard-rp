@@ -1,3 +1,4 @@
+\glossaryentry{IC?\glossentry{IC}|setentrycounter[]{page}"\glsnumberformat}{2}
 \glossaryentry{HDL?\glossentry{hdl}|setentrycounter[]{page}"\glsnumberformat}{2}
 \glossaryentry{Chisel?\glossentry{chisel}|setentrycounter[]{page}"\glsnumberformat}{2}
 \glossaryentry{FIRRTL?\glossentry{firrtl}|setentrycounter[]{page}"\glsnumberformat}{2}
@@ -16,3 +17,4 @@
 \glossaryentry{CSR?\glossentry{csr}|setentrycounter[]{page}"\glsnumberformat}{6}
 \glossaryentry{HPM?\glossentry{hpm}|setentrycounter[]{page}"\glsnumberformat}{6}
 \glossaryentry{IPC?\glossentry{ipc}|setentrycounter[]{page}"\glsnumberformat}{7}
+\glossaryentry{SoC?\glossentry{soc}|setentrycounter[]{page}"\glsnumberformat}{13}
