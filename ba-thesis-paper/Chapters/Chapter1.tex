@@ -14,61 +14,53 @@
 \label{sec:context_and_motivation}
 
 The architecture of modern computing is undergoing a profound paradigm shift. 
-For decades, two laws have dictated the direction of computational hardware development:
-Moore's law and Dennard Scaling.
-% TODO: explain here what these two laws state
-That is until the mid- to late 2000's,
-when Dennards Scaling broke down due the "power wall" and "dark silicon".
-The power wall refers to a power density, that is too high for Mosfets at increasingly small sizes.
-Dark silicon is a term given to the space insice an IC % TODO: put IC (Integrted cicuit) to the abrevations
-which can't be powered-on at the nominal operating voltage for a set TDP constraint. % TODO: thermal design power, put it to the abrevations
-In 2011, researches projected that at 8nm  technologies the space taken up by dark silicon may reach as high, as up to 50 - 80%.
-Around 2010, the pace of semiconductor advancement has fallen below the threshold which was predicted by Moore's law and in 2022 Nvidia's CEO Jensen Huang even went as far as to claim that Moore's law is dead. %cite this.
+For decades, two foundational principles dictated the trajectory of computational hardware development:
+Moore's law~\cite{moore1965cramming} and Dennard scaling~\cite{dennard1974design}.
+Moore's law observed that the number of transistors packed onto a dense integrated circuit doubles approximately every two years, enabling exponential growth in computing capability.
+Simultaneously, Dennard scaling posited that as transistor dimensions shrink, their power density remains constant because operating voltage and capacitance scale downward in proportion to physical size, allowing clock frequencies to increase without causing unmanageable thermal dissipation.
+However, in the mid- to late-2000s, Dennard scaling broke down due to fundamental physical limits, giving rise to the ``power wall'' and the emergence of ``dark silicon''~\cite{borkar1999design,taylor2012landscape}.
+The power wall describes the critical barrier where subthreshold leakage currents and non-scaling supply voltages cause power density to escalate beyond feasible thermal cooling limits for \glspl{IC}.
+Consequently, modern microprocessors can no longer energize all on-chip transistors simultaneously at nominal operating voltages under realistic \gls{tdp} constraints---a phenomenon termed dark silicon.
+In 2011, researchers projected that at the 8~nm technology node, the fraction of unpowered chip area due to dark silicon could reach as high as 50\%--80\%~\cite{esmaeilzadeh2011dark}.
+Around 2010, the pace of semiconductor advancement had fallen below the threshold which was predicted by Moore's law, and in 2022 NVIDIA's CEO Jensen Huang even went as far as to declare that Moore's law is dead~\cite{huang2022moore}.
 
-But as the Turing-award winning computer scientists John Hennessy and David Patterson have observed, we have entered a ``New Golden Age for Computer Architecture''~\cite{hennessy2019new},
+As the Turing-award winning computer scientists John Hennessy and David Patterson have observed, we have entered a ``New Golden Age for Computer Architecture''~\cite{hennessy2019new},
 in which substantial performance and energy-efficiency gains can no longer rely on simply brute-forcing frequency scaling,
 but must instead stem from architectural specialization, agile design methodologies, and domain-specific co-design between hardware and software.
-For this purpose the researchers and developers over at UC Berkeley have developed "Chipyard", a one stop solution for designing, verifying and testing riscv SOC's, as well as the riscv archtiecture. % TODO: System on a chip and riscv, put it to the abrevations
-In contrast to proprietary architectures like x86 and ARM, riscv offers an open, royalty-free, 
-and modular instruction set which is suited for ultra-low-power embedded systems, high performance enterprise level server clusters and everything in between 
-while also circumventing licensing barriers and architectural bloat by offering a base integer specification like RV64I or RV32I alongside modular extensions,
-like RV64GC which contains integer multiplication and division (\texttt{M}), atomic memory operations (\texttt{A}), 
-single- and double-precision IEEE~754 floating-point arithmetic (\texttt{F} and \texttt{D}), and compressed 16-bit instructions (\texttt{C}).
-On top, the privileged specification offers a solid base for both bare metal and general-purpose operating systems like Linux 
-by splitting up hardware execution priviliges into a User mode (u-mode), a Supervisor mode (S-mode) and a machine mode (M-mode). \cite{waterman2019riscv}
 
-The methods, by which \gls{IC}'s have been designed in the past started to hinder development. 
+To appreciate this transition, it is essential to consider the broader evolution of computer architectures.
+Classical general-purpose computing fundamentally builds upon the von~Neumann architecture, which couples a centralized processing unit to unified memory holding both instructions and data.
+Over decades, instruction set architectures evolved primarily along two philosophies: \gls{cisc} and \gls{risc}.
+\gls{cisc} architectures, most prominently x86 and its 64-bit successor x86-64, historically dominated personal computing and enterprise servers by providing expressive, variable-length instructions capable of executing complex multi-step memory operations directly.
+However, preserving backward compatibility across decades of microarchitectural generations introduced substantial hardware decoding overhead, pipeline complexity, and architectural bloat.
+Conversely, \gls{risc} architectures prioritized streamlined execution pipelines with simple, fixed-length instructions operating strictly on registers via load/store semantics.
+While commercial \gls{risc} architectures like ARM achieved market dominance in mobile and embedded systems through energy efficiency, proprietary architectures impose severe licensing fees, restrictive nondisclosure agreements, and legal barriers that prevent academic researchers and emerging hardware vendors from freely customizing processor microarchitectures.
+
+To overcome these barriers, researchers at UC Berkeley developed \gls{riscv}~\cite{patterson2014case,waterman2019user}, an open, royalty-free, and modular instruction set architecture designed as a universal standard for academia and industry.
+Unlike proprietary architectures, \gls{riscv} avoids licensing restrictions and architectural bloat by offering a clean, minimal base integer specification (such as 32-bit RV32I or 64-bit RV64I) alongside standardized, optional modular extensions.
+For instance, the standard RV64GC profile combines the 64-bit base integer pipeline with integer multiplication and division (\texttt{M}), atomic memory operations (\texttt{A}), single- and double-precision IEEE~754 floating-point arithmetic (\texttt{F} and \texttt{D}), and compressed 16-bit instructions (\texttt{C}) for reduced code footprint~\cite{waterman2019user}.
+On top of that, the \gls{riscv} privileged specification establishes a solid foundation for both bare-metal firmware and general-purpose operating systems like Linux by partitioning hardware execution privileges into User mode (U-mode), Supervisor mode (S-mode), and Machine mode (M-mode)~\cite{waterman2019riscv}.
+
+To harness the potential of \gls{riscv} and accelerate agile architectural exploration, researchers at UC Berkeley developed Chipyard~\cite{amid2020chipyard}.
+Chipyard is an integrated open-source SoC design, verification, and simulation framework that brings together processors, accelerators, and memory hierarchies into a cohesive ecosystem.
+
+The methodologies by which \glspl{soc} and integrated circuits have historically been designed started to hinder development. 
 Classic \glspl{hdl} like VHDL and Verilog which operate on the Register-Transfer-Level struggle with multi-core processor clusters, complex cache coherency interconnects, dynamic memory controllers, 
-and heterogeneous coprocessors. All concepts which are common in modern hardware development.
-Traditional hdl's restrict parameterization to simple bus widths via parameters or generic constructs and simple scalar constants.
-They lack common concepts found in modern programming languages, like object-oriented abstraction, parametric polymorphism, and functional metaprogramming.
-This leads to more complex systems in verilog requiring  manual wiring, error-prone text preprocessing, 
-or rigid graphical IP integration environments which are hard to develop and even harder to maintain.
-For this reason modern hardware development takes place in \gls{chisel},
-as Scala Embedded language which embeds hardware construction primitives within the high-level, statically typed Scala programming language~\cite{bachrach2012chisel}.
+and heterogeneous coprocessors---all concepts that are standard in modern hardware development.
+Traditional \glspl{hdl} restrict parameterization to simple bus widths via parameters or generic constructs and simple scalar constants.
+They lack common concepts found in modern programming languages, such as object-oriented abstraction, parametric polymorphism, and functional metaprogramming.
+This leads to complex systems in Verilog requiring manual wiring, error-prone text preprocessing, 
+or rigid graphical IP integration environments which are difficult to develop and even harder to maintain.
+For this reason, modern hardware development increasingly takes place in \gls{chisel},
+a Scala embedded language which embeds hardware construction primitives within the high-level, statically typed Scala programming language~\cite{bachrach2012chisel}.
 Instead of relying on statically written netlists, engineers develop programmatic hardware \emph{generators} 
 that utilize object-oriented principles, parameterized classes, and higher-order functions to instantiate logic blocks at elaboration time.
 Written Chisel code is then elaborated into the \gls{firrtl}~\cite{amid2020chipyard}.
-It is a layer which performs clock-gating insertion,
-formal verification instrumentation, and target-specific memory mapping before outputting an optemized Verilog code.
-Chipyard removes the need for manual integration overhead of disparate IP blocks by connecting processor tiles through the standardized, open-source \textbf{TileLink} bus protocol.
-Chipyard also contains both the Rocket Chip and the BOOM Core, which are both utilized extensively in this thesis.
+FIRRTL is an intermediate representation layer which performs clock-gating insertion,
+formal verification instrumentation, and target-specific memory mapping before outputting optimized Verilog code.
+Chipyard removes the need for manual integration overhead of disparate IP blocks by connecting processor tiles through the standardized, open-source \textbf{TileLink} bus protocol~\cite{cook2017tilelink}.
+Chipyard also contains both the Rocket Chip and the BOOM core generators, which are both evaluated extensively in this thesis:
 
-
-\begin{itemize}
-  \item \textbf{The Rocket Chip}
-      The Rocket chip is an in-order single-issue scalar core containing a 5-stage pipeline (Fetch, Decode/Register Read, Execute, Memory, Writeback)~\cite{asanovic2016rocket}.
-      Its core is especially suited for embedded systems and edge nodes due to its power- and area-efficiency.
-      But this is offset due to the in-order nature of the core, which can cause stalls resulting from structural hazards, data dependencies and off-chip memory access latencies.
-
-    \item \textbf{The Berkeley-Out-Of-Order-Machine (BOOM)}The BOOM is a superscalar out-of-order execution processor generator~\cite{celio2015boom,celio2019boomv2},
-      which implements speculative instruction fetch with hardware branch prediction, 
-      register renaming to eliminate false register dependencies, an explicit physical register file, an active reorder buffer, out-of-order issue queues, and non-blocking load/store units.
-      The Berkeley-Out-Of-Order-Machine is scalable across multiple pipeline widths, i.e. 1-wide Small BOOM, 2-wide Medium BOOM, and 3-wide Large BOOM,
-      which allows developers to exchange hardware complexity for a significant extraction of \gls{ilp}.
-\end{itemize}
-
-% old 
 \begin{itemize}
     \item \textbf{The Rocket Chip Generator}: An in-order, single-issue scalar core implementing a classic 5-stage pipeline
       (Fetch, Decode/Register Read, Execute, Memory, Writeback)~\cite{asanovic2016rocket}. 
@@ -76,30 +68,28 @@ Chipyard also contains both the Rocket Chip and the BOOM Core, which are both ut
       However, because it dispatches and completes instructions strictly in program order, its pipeline is susceptible to stalls resulting from structural hazards, data dependencies, 
       and off-chip memory access latencies.
     \item \textbf{The Berkeley Out-of-Order Machine (\gls{boom})}: A synthesized, parameterizable superscalar out-of-order execution processor generator~\cite{celio2015boom,celio2019boomv2}. 
-      BOOM implements advanced microarchitectural techniques inspired by modern commercial high-performance processors, including speculative instruction fetch with hardware branch prediction, 
+      BOOM implements advanced microarchitectural techniques inspired by modern high-performance processors, including speculative instruction fetch with hardware branch prediction, 
       register renaming to eliminate false register dependencies, an explicit physical register file, an active \gls{rob}, out-of-order issue queues, and non-blocking load/store units. 
       BOOM can be scaled across various pipeline widths (1-wide Small BOOM, 2-wide Medium BOOM, and 3-wide Large BOOM), 
-      allowing architects to trade off hardware complexity and area for significant extraction of \gls{ilp}.
+      allowing architects to trade off hardware complexity and silicon area for significant extraction of \gls{ilp}.
 \end{itemize}
 
-Besides the architecture of the chip,
-the system performance is constrained by the \emph{memory wall}. 
-A growing disparity between high-speed logic execution and the high latency of off-chip \gls{dram}.
+Besides processor core microarchitecture,
+the overall system performance is heavily constrained by the \emph{memory wall}~\cite{wulf1995memory}:
+the growing disparity between high-speed logic execution and the comparatively high latency of off-chip \gls{dram}.
 
-Having to access off-chip memory can cost up to hundreds of clock cycles of latency.
-Regarding in in-order cores such as the Rocket core, an L1 data cache miss leads to the entire pipeline stalling, which instantly halts instruction retirement.
-Out-of-Order cores like BOOM come equipped with non-blocking caches bundled together with miss status handling registers \glspl{mshr}.
+Accessing off-chip DRAM can incur latencies on the order of hundreds of processor clock cycles.
+In in-order cores such as the Rocket core, an L1 data cache miss leads to the entire pipeline stalling, which instantly halts instruction retirement.
+Out-of-order cores like BOOM mitigate this penalty by incorporating non-blocking caches backed by \glspl{mshr}~\cite{kroft1981lockup}.
 These enable the core to hide substantial portions of memory access latency by tracking multiple in-flight, 
 outstanding cache misses while continuing to execute independent downstream instructions out of order.
 
-Figuring out how these architectural tradeoffs,
-namely in in-order versus out-of-order, issue width scaling, L1 cache capacity and associativity, 
-and the presence of an inclusive L2 cache impact the performance of these chips regarding instruction execution, 
-requires a systematic empirical observation.
-Evaluating these SOCS's requires computational intensive workloads, like the sobel edge detection algorithm or the Fast-Fourier-Transformation \cite{frigo2005design}. 
-These chips are simulated on the cycle-exact software tool Verilator \cite{snyder2004verilator}. %NOTE: maybe mention FPGA's here aswell
+Determining how these microarchitectural trade-offs---namely in-order versus out-of-order execution, issue width scaling, L1 cache capacity and associativity, 
+and the presence of an inclusive L2 cache---impact instruction execution throughput requires systematic empirical observation.
+Evaluating these \glspl{soc} demands computationally intensive workloads, such as the Sobel 2D edge detection filter or the Fast Fourier Transform (\gls{fftw})~\cite{frigo2005design}. 
+These configurations are simulated using the cycle-exact software tool Verilator~\cite{snyder2004verilator}.
 
-\section{Research questions andchallenges}
+\section{Research Questions and Challenges}
 \label{sec:challenges_and_rqs}
 
 Figuring out which trade-offs lead to the best performance leads to a couple of challenges:
@@ -108,9 +98,9 @@ Figuring out which trade-offs lead to the best performance leads to a couple of 
     \item \textbf{Scaling the microarchitecture and exploiting ILP}: Out-of-order superscalar pipelines are built to maximize instructions per cycle by dynamically extracting instruction-level parallelism. 
       However, the actual performance gains achieved over simpler in-order pipelines are heavily modulated by the computational characteristics of the executed workload 
       (e.g., loop nesting depth, memory dependency chains, and branch predictability). 
-      Being able to quantify whether the substantial hardware area and power cost that comes with of out-of-order hardware is justified for specific embedded kernels remains to be seen.
-    \item \textbf{Memory Hierarchy Sensitivity and Working Set Interactions}: Chosing cache sizes involves complex trade-offs between hit latency, cycle time, silicon footprint, and miss penalties. 
-      In workloads, where the entire data set fits within the primary data cache (L1 D\$), enlarging the cache yields diminishing returns. 
+      Being able to quantify whether the substantial hardware area and power cost that comes with out-of-order hardware is justified for specific embedded kernels remains to be seen.
+    \item \textbf{Memory Hierarchy Sensitivity and Working Set Interactions}: Choosing cache sizes involves complex trade-offs between hit latency, cycle time, silicon footprint, and miss penalties. 
+      In workloads where the entire data set fits within the primary data cache (L1 D\$), enlarging the cache yields diminishing returns. 
       However, when the data size exceeds the capacity of the L1 cache, the presence of an intermediate L2 cache becomes essential. 
       Being able to differentiate between cache capacity effects and pure computation-bound performance bottlenecks requires an enormous amount of empirical analysis.
     \item \textbf{Physical Synthesis and Timing Closure on FPGA Targets}: High-level Chisel generators produce abstract structural Verilog netlists. 
@@ -122,12 +112,6 @@ Figuring out which trade-offs lead to the best performance leads to a couple of 
       However, the precise degree to which out-of-order execution can completely insulate overall runtime from the absence of secondary caching 
       (e.g., removing the L2 cache entirely) under bare-metal conditions requires experimental validation.
 \end{enumerate}
-
-In order to adress these challenges, my thesis poses these 4 major research questions:
-
-%old 
-
- % here
 
 To address these challenges systematically, this bachelor thesis formulates four primary research questions:
 
@@ -181,7 +165,7 @@ To execute non-trivial computational algorithms without operating system overhea
       In order to support dynamic memory allocation for complex libraries such as FFTW~\cite{frigo2005design}, a custom \texttt{\_sbrk} bump allocator is implemented in \texttt{syscalls.c}, 
       allocating contiguous heap memory in DDR3 RAM starting at the linker script's \texttt{\_end} boundary.
     \item \textbf{Serial Telemetry}: Telemetry output is driven through a memory-mapped 16550-compatible \gls{uart} controller located at physical address \texttt{0x10020000}. 
-      A lightweight, re-entrant formatter (\texttt{mpaland/printf}) is integrated and operated at a high-speed baud rate of 921,600~baud to minimize transmission latency during execution.
+      A lightweight, re-entrant formatter (\texttt{mpaland/printf}) is integrated and operated at a standard baud rate of 115,200~baud to minimize transmission latency during execution.
     \item \textbf{Cycle-Accurate Hardware Performance Telemetry}: Low-overhead inline assembly routines query RISC-V \glspl{csr}, specifically \texttt{mcycle}, \texttt{minstret}, 
       and up to 29 individual \gls{hpm} event counters (\texttt{mhpmcounter3}--\texttt{mhpmcounter31}), capturing exact cycle counts, instruction retirements, branch mispredictions, 
       and cache access/miss events.
@@ -195,10 +179,10 @@ and deterministic performance profiling across all 24 configurations.
 
 \subsection{Automated Design Space Exploration Pipeline}
 To orchestrate benchmark runs across dozens of processor configurations systematically, 
-I wrote an automated Python test script (\texttt{run\_edge\_detection\_benchmark.py}, \texttt{boom\_dse.py}, and \texttt{rocket\_fpga\_dse.py}).
+I developed an automated Python test framework comprising \texttt{run\_\allowbreak edge\_\allowbreak detection\_\allowbreak benchmark.py}, \texttt{boom\_dse.py}, and \texttt{rocket\_fpga\_dse.py}.
 The framework cross-compiles target application binaries, 
 executes multi-run simulation sequences, parses UART serial telemetry, validates numerical checksums, 
-and aggregates microarchitectural statistics into structured JSON datasets to be used for later analysis.
+and aggregates microarchitectural statistics into structured JSON datasets to be used for subsequent analysis.
 
 \subsection{Physical Synthesis and Implementation on FPGA}
 To validate physical viability beyond simulation, target SoC designs are ported to the \textbf{AMD/Xilinx Virtex-7 VC707 Evaluation Kit}. 
@@ -218,18 +202,17 @@ The major contributions of this bachelor thesis are as follows:
       structuring an exhaustive evaluation matrix spanning single-issue in-order cores (Rocket) 
       and superscalar out-of-order cores across three distinct issue widths (Small, Medium, Large BOOM v3) paired with six fine-grained L1/L2 cache variants.
     \item \textbf{Design and Deployment of a Bare-Metal Profiling Infrastructure}: I implemented a lightweight, bare-metal runtime for RISC-V,
-      featuring dynamic heap bump allocation (\texttt{\_sbrk}), high-baud memory-mapped UART communication (921,600 baud), 
-      and non-intrusive CSR-based performance counter extraction capable of executing complex image processing and scientific numerical libraries (FFTW) without having to rely on an underlying operating system.
+      featuring dynamic heap bump allocation (\texttt{\_sbrk}), memory-mapped UART communication (115,200~baud), 
+      and non-intrusive CSR-based performance counter extraction capable of executing image processing algorithms (Sobel edge detection), scientific numerical libraries (FFTW), and embedded benchmark suites (Embench-IoT) without having to rely on an underlying operating system.
     \item \textbf{Comprehensive Analysis of Microarchitectural Scaling}: I evaluated the performance characteristics of all 24 configurations 
-      on the Sobel edge detection image processing kernel. I demonstrated that core issue width exhibits an almost perfect positive correlation with \gls{ipc} ($r = +0.9889$), 
+      on the Sobel edge detection image processing kernel. Based on empirical cycle-exact simulation measurements, I demonstrated that core issue width exhibits an almost perfect positive correlation with \gls{ipc} ($r = +0.9889$), 
       and that out-of-order execution achieves a $1.51\times$ speedup over an in-order pipeline at identical 1-wide issue width strictly through dynamic instruction scheduling.
     \item \textbf{Empirical Characterization of Memory Hierarchy Sensitivity and Latency Tolerance}: I quantified the decoupled effects of L1 and L2 cache sizing. 
-      The results demostrate that while quadrupling L1 D\$ capacity from 16~KiB to 64~KiB eliminates 85\% to 95\% of data cache misses ($r = -0.9135$), 
+      The results demonstrate that while quadrupling L1 D\$ capacity from 16~KiB to 64~KiB eliminates 85\% to 95\% of data cache misses ($r = -0.9135$), 
       its impact on total runtime is negligible ($r = -0.1636$) due to the compute-bound nature of the kernel. 
-      Furthermore, I demonstrated that omitting the L2 cache imposes a measurable penalty (+4,398 cycles, $+0.48\%$) on the in-order Rocket pipeline due to memory stall cycles, 
+      Furthermore, empirical measurements show that omitting the L2 cache imposes a measurable penalty (+4,398 cycles, $+0.48\%$) on the in-order Rocket pipeline due to memory stall cycles, 
       whereas BOOM completely masks DRAM latency through its non-blocking MSHR architecture and out-of-order execution.
-    \item \textbf{Automated DSE Toolchain and Physical FPGA Mapping}: I provided a fully automated, 
-      reproducible Python-based benchmarking harness for automated configuration compilation, execution, and data aggregation.
+    \item \textbf{Automated DSE Toolchain}: I provided a fully automated, reproducible Python-based benchmarking harness for automated configuration compilation, simulation execution, and microarchitectural data aggregation.
 \end{enumerate}
 
 % ----------------------------------------------------------------------------

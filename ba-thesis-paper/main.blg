@@ -11,46 +11,48 @@ Database file #1: references.bib
 -- IEEEtran.bst version 1.14 (2015/08/26) by Michael Shell.
 -- http://www.michaelshell.org/tex/ieeetran/bibtex/
 -- See the "IEEEtran_bst_HOWTO.pdf" manual for usage information.
+Warning--edition ordinal word "IHI0022E" may be too high (or improper) for conversion in arm2011axi4
 
 Done.
-You've used 17 entries,
+You've used 24 entries,
             4087 wiz_defined-function locations,
-            918 strings with 10605 characters,
-and the built_in function-call counts, 12238 in all, are:
-= -- 956
-> -- 365
-< -- 77
-+ -- 188
-- -- 75
-* -- 586
-:= -- 1883
-add.period$ -- 34
-call.type$ -- 17
-change.case$ -- 17
-chr.to.int$ -- 162
-cite$ -- 17
-duplicate$ -- 905
-empty$ -- 959
-format.name$ -- 89
-if$ -- 2805
+            957 strings with 11679 characters,
+and the built_in function-call counts, 17297 in all, are:
+= -- 1388
+> -- 465
+< -- 127
++ -- 244
+- -- 90
+* -- 822
+:= -- 2647
+add.period$ -- 47
+call.type$ -- 24
+change.case$ -- 25
+chr.to.int$ -- 273
+cite$ -- 25
+duplicate$ -- 1270
+empty$ -- 1346
+format.name$ -- 106
+if$ -- 3987
 int.to.chr$ -- 0
-int.to.str$ -- 17
-missing$ -- 197
-newline$ -- 76
-num.names$ -- 17
-pop$ -- 455
+int.to.str$ -- 24
+missing$ -- 259
+newline$ -- 97
+num.names$ -- 23
+pop$ -- 582
 preamble$ -- 1
 purify$ -- 0
-quote$ -- 2
-skip$ -- 926
+quote$ -- 4
+skip$ -- 1332
 stack$ -- 0
-substring$ -- 397
-swap$ -- 714
-text.length$ -- 23
+substring$ -- 649
+swap$ -- 1017
+text.length$ -- 36
 text.prefix$ -- 0
 top$ -- 5
-type$ -- 17
-warning$ -- 0
-while$ -- 50
-width$ -- 19
-write$ -- 187
+type$ -- 24
+warning$ -- 1
+while$ -- 76
+width$ -- 26
+write$ -- 255
+(There was 1 warning)

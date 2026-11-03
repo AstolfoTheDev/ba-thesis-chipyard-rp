@@ -21,15 +21,57 @@
 \providecommand{\BIBdecl}{\relax}
 \BIBdecl
 
+\bibitem{moore1965cramming}
+G.~E. Moore, ``{Cramming More Components onto Integrated Circuits},''
+  \emph{Electronics}, vol.~38, no.~8, pp. 114--117, 1965.
+
+\bibitem{dennard1974design}
+R.~H. Dennard, F.~H. Gaensslen, H.-N. Yu, V.~L. Rideout, E.~Bassous, and A.~R.
+  LeBlanc, ``{Design of Ion-Implanted MOSFET's with Very Small Physical
+  Dimensions for Digital Integrated Circuits},'' \emph{IEEE Journal of
+  Solid-State Circuits}, vol.~9, no.~5, pp. 256--268, 1974.
+
+\bibitem{borkar1999design}
+S.~Borkar, ``{Design Challenges of Technology Scaling},'' \emph{IEEE Micro},
+  vol.~19, no.~4, pp. 23--29, 1999.
+
+\bibitem{taylor2012landscape}
+M.~B. Taylor, ``{A Landscape of the Dark Silicon Problem},'' \emph{IEEE Micro},
+  vol.~32, no.~3, pp. 8--14, 2012.
+
+\bibitem{esmaeilzadeh2011dark}
+H.~Esmaeilzadeh, E.~Blem, R.~St.~Amant, K.~Sankaralingam, and D.~Burger,
+  ``{Dark Silicon and the End of Multicore Scaling},'' in \emph{Proceedings of
+  the 38th Annual International Symposium on Computer Architecture (ISCA)},
+  2011, pp. 365--376.
+
+\bibitem{huang2022moore}
+J.~Huang, ``{NVIDIA GTC 2022 Keynote Q\&A: Moore's Law is Dead},'' Keynote
+  Press Briefing, NVIDIA Corporation, 2022.
+
 \bibitem{hennessy2019new}
 J.~L. Hennessy and D.~A. Patterson, ``{A New Golden Age for Computer
   Architecture},'' \emph{Communications of the ACM}, vol.~62, no.~2, pp.
   48--60, 2019.
 
-\bibitem{waterman2019riscv}
+\bibitem{patterson2014case}
+D.~A. Patterson and A.~Waterman, ``{The Case for RISC-V},'' EECS Department,
+  University of California, Berkeley, Tech. Rep. UCB/EECS-2014-146, 2014.
+
+\bibitem{waterman2019user}
 A.~Waterman and K.~Asanovi{\'c}, ``{The RISC-V Instruction Set Manual, Volume
-  II: Privileged Architecture, Version 1.11},'' RISC-V Foundation, Tech. Rep.,
+  I: User-Level ISA, Document Version 2.2},'' RISC-V Foundation, Tech. Rep.,
   2019.
+
+\bibitem{waterman2019riscv}
+------, ``{The RISC-V Instruction Set Manual, Volume II: Privileged
+  Architecture, Version 1.11},'' RISC-V Foundation, Tech. Rep., 2019.
+
+\bibitem{amid2020chipyard}
+A.~Amid, D.~Biancolin, A.~Gonzalez, D.~Grubb, S.~Karandikar, H.~Liew,
+  A.~Magyar, H.~Mao, J.~Ou, N.~Pemberton \emph{et~al.}, ``{Chipyard: Integrated
+  Agile RISC-V SoC Design Environment},'' \emph{IEEE Micro}, vol.~40, no.~4,
+  pp. 35--45, 2020.
 
 \bibitem{bachrach2012chisel}
 J.~Bachrach, H.~Vo, B.~Richards, Y.~Lee, A.~Waterman, R.~Avi{\v{z}}ienis,
@@ -37,11 +79,9 @@ J.~Bachrach, H.~Vo, B.~Richards, Y.~Lee, A.~Waterman, R.~Avi{\v{z}}ienis,
   Scala Embedded Language},'' in \emph{Proceedings of the 49th Annual Design
   Automation Conference (DAC)}, 2012, pp. 1216--1225.
 
-\bibitem{amid2020chipyard}
-A.~Amid, D.~Biancolin, A.~Gonzalez, D.~Grubb, S.~Karandikar, H.~Liew,
-  A.~Magyar, H.~Mao, J.~Ou, N.~Pemberton \emph{et~al.}, ``{Chipyard: Integrated
-  Agile RISC-V SoC Design Environment},'' \emph{IEEE Micro}, vol.~40, no.~4,
-  pp. 35--45, 2020.
+\bibitem{cook2017tilelink}
+H.~Cook, W.~Terpstra, and Y.~Lee, ``{SiFive TileLink Specification: Version
+  1.7.1},'' SiFive, Inc., Tech. Rep., 2017.
 
 \bibitem{asanovic2016rocket}
 K.~Asanovi{\'c}, R.~Avi{\v{z}}ienis, J.~Bachrach, S.~Beamer, D.~Biancolin,
@@ -59,14 +99,6 @@ C.~Celio, P.-F. Chiu, B.~Nikoli{\'c}, D.~Patterson, and K.~Asanovi{\'c},
   Open-Source RISC-V Processor},'' \emph{IEEE Micro}, vol.~39, no.~5, pp.
   68--75, 2019.
 
-\bibitem{frigo2005design}
-M.~Frigo and S.~G. Johnson, ``{The Design and Implementation of FFTW3},''
-  \emph{Proceedings of the IEEE}, vol.~93, no.~2, pp. 216--231, 2005.
-
-\bibitem{snyder2004verilator}
-W.~Snyder, ``{Verilator: Fast Open-Source C++ HDL Simulator},'' \emph{IEEE
-  Design \& Test of Computers}, 2004.
-
 \bibitem{wulf1995memory}
 W.~A. Wulf and S.~A. McKee, ``{Hitting the Memory Wall: Implications of the
   Obvious},'' \emph{ACM SIGARCH Computer Architecture News}, vol.~23, no.~1,
@@ -77,9 +109,17 @@ D.~Kroft, ``{Lockup-Free Instruction Fetch/Prefetch Cache Organization},'' in
   \emph{Proceedings of the 8th Annual Symposium on Computer Architecture
   (ISCA)}, 1981, pp. 81--87.
 
-\bibitem{cook2017tilelink}
-H.~Cook, W.~Terpstra, and Y.~Lee, ``{SiFive TileLink Specification: Version
-  1.7.1},'' SiFive, Inc., Tech. Rep., 2017.
+\bibitem{frigo2005design}
+M.~Frigo and S.~G. Johnson, ``{The Design and Implementation of FFTW3},''
+  \emph{Proceedings of the IEEE}, vol.~93, no.~2, pp. 216--231, 2005.
+
+\bibitem{snyder2004verilator}
+W.~Snyder, ``{Verilator: Fast Open-Source C++ HDL Simulator},'' \emph{IEEE
+  Design \& Test of Computers}, 2004.
+
+\bibitem{arm2011axi4}
+\emph{{AMBA AXI and ACE Protocol Specification: AXI3, AXI4, and AXI4-Lite, ACE
+  and ACE-Lite}}, Ihi0022e~ed., ARM Limited, 2011.
 
 \bibitem{karandikar2018firesim}
 S.~Karandikar, H.~Mao, D.~Kim, D.~Biancolin, A.~Amid, A.~Lee, N.~Pemberton,
@@ -93,15 +133,6 @@ A.~Traber, M.~Gautschi, A.~Pullini, P.~D. Schiavone, D.~Rossi, and L.~Benini,
   ``{PULPino: An Open-Source Microcontroller System-on-Chip},'' in
   \emph{International Workshop on Power and Timing Modeling, Optimization and
   Simulation (PATMOS)}, 2016.
-
-\bibitem{waterman2019user}
-A.~Waterman and K.~Asanovi{\'c}, ``{The RISC-V Instruction Set Manual, Volume
-  I: User-Level ISA, Document Version 2.2},'' RISC-V Foundation, Tech. Rep.,
-  2019.
-
-\bibitem{patterson2014case}
-D.~A. Patterson and A.~Waterman, ``{The Case for RISC-V},'' EECS Department,
-  University of California, Berkeley, Tech. Rep. UCB/EECS-2014-146, 2014.
 
 \bibitem{HEVC_Test}
 \BIBentryALTinterwordspacing
