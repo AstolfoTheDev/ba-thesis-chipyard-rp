@@ -211,10 +211,23 @@ TileLink defines five independent, decoupled communication channels from A to E:
 
 While TileLink is responsible for internal coherent traffic,
 the Advanced eXtensible Interface 4 \gls{axi4} which is part of the ARM AMBA4 specification is the industrial standard for peripheral and off-chip memory integration. \cite{arm2011axi4}
+AXI4 seperates read and write operations into five different unidirectional channels:
+\textit{Read Adress (AR)} and \textit{Read Data (R)} provide pipelined read transactions and data streaming back towards the master.
+\textit{Write Adress (AW)}, \textit{Write Data (W)} and Write Response (B) are responsible for decouplin adress issuance,
+payload transmission and final completion handshaking.
+
+AXI4 provides native full-duplex communication due to write- and read data paths posessing dedicated physical signals.
+Out-of-order transaction completion is supported via transaction id tags (ARID, AWID, RID, BID)
+which enable memory controllers to reorder memory requests in order to maximize DRAM row-buffer hit rates.
+
+\subsubsection{SOC integration and protocol bridging within chipyard}
+
+Inside the chipyard ecosystem processors, memory systems and crossbars are composed by using the diplomacy framework. \cite{amid2020chipyard}
+
+
+
 
 \section{Agile Hardware Construction \& Generator Frameworks}
-
-
 
 
 
