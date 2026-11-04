@@ -32,3 +32,7 @@
 \glossaryentry{IPC?\glossentry{ipc}|setentrycounter[]{page}"\glsnumberformat}{7}
 \glossaryentry{SoC?\glossentry{soc}|setentrycounter[]{page}"\glsnumberformat}{13}
 \glossaryentry{AXI4?\glossentry{axi4}|setentrycounter[]{page}"\glsnumberformat}{14}
+\glossaryentry{RTL?\glossentry{rtl}|setentrycounter[]{page}"\glsnumberformat}{15}
+\glossaryentry{HDL?\glossentry{hdl}|setentrycounter[]{page}"\glsnumberformat}{15}
+\glossaryentry{HDL?\glossentry{hdl}|setentrycounter[]{page}"\glsnumberformat}{15}
+\glossaryentry{Chisel?\glossentry{chisel}|setentrycounter[]{page}"\glsnumberformat}{15}

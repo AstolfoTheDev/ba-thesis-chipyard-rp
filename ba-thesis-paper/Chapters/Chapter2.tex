@@ -223,15 +223,79 @@ which enable memory controllers to reorder memory requests in order to maximize 
 \subsubsection{SOC integration and protocol bridging within chipyard}
 
 Inside the chipyard ecosystem processors, memory systems and crossbars are composed by using the diplomacy framework. \cite{amid2020chipyard}
+This framework negotiates memory-mapped adress ranges, bus widths and transaction ID allotments at the elaboration phase,
+which eliminates manual wiring bugs and bus-width mismatch hazards.
 
+The system hierarchy is organized as follows: % TODO: add a graphic here
 
-
+\begin{itemize}
+  \item Processor tiles (i.e. Rocket and \gls{BOOM}) interface directly with the system bus via TL-C.  %what is tlc?
+  \item traffic which targets external memory routes across the memory bus to a coherent L2 cache or a TileLink Broadcast manager (if the L2 is ommitted).
+  \item In order to interface with external memory hardware chipyard synthesizes a TileLink to AXI4 protocol bridge.
+    This middleman comverts TileLink channel operations into \gls{AXI4} adress/data beats while simultanously mapping transaction IDS,
+    which ensures the complete interoperability between open-source processors and proprietary memory controllers.
+\end{itemize}
 
 \section{Agile Hardware Construction \& Generator Frameworks}
 
-
+In the past, hardware development relied on waterfall models, manual register-transfer-level (\gls{rtl}) tinkering and static netlists.
+With increasing complexity, these methods became more and more prone to errors and made debugging harder.
+In order to mitigate these issues, modern computer architecture design has adopted agile hardware development. \cite{lee2016agile}
+This is a development paradigm which was adopted from software engineering.
+It emphasizes iterative tapeouts, continous integration, extensive parameterization and programmatic hardware generators.
+Instead of having to design fixed, singular hardware instances,
+developers construct parameterized software programs that emit optimized hardware netlists which are suited for specific application requirements.
 
 \subsection{Classical RTL (Verilog/VHDL) vs Metaprogrammed Generators (Chisel/FIRRTL)}
+
+For the longest time, digital hardware design has been dominated by \gls{hdl} like Verilog and VHDL.
+While these languages are great for describing concrete gate-level and cycle-by-cycle register-transfer operations,
+they aren't suited for modern hardware development.
+
+\subsubsection{Limitations of Hardware Description Languages}
+
+\begin{enumerate}
+  \item \textbf{Primitive Parameterization:} Verilog restris parameterization to compile-time scalar constants and static structural instantiation loops.
+    Complex parameter dependencies, such as dynamically sizing crossbar arbitration logic based on the number of heterogenous cache ports or computing routing tables can't be evaluated natively within Verilog.
+  \item \textbf{Lack of abstraction:} \glspl{hdl}lack object-oriented object-oriented inheritance, parametric polymorphism, functional closures and higher-order-functions \gls{hof}. 
+    If one wants to reuse structures, such as a parameterized queue or a generic arbiter, he would have to reqrite them or duplicate them by hand for every distinct payload.
+  \item \textbf{Fragility of Structural Interconnects:} Building multi-core SoCs in a hardware description language like Verilog requires explicitly wiring tens of thousands of seperate port signals across hierarchical module boundaries.
+    Manual changes across every intermediate netlist is needed if a sideband coherence signal is to be added or if an adress bus needs to be widened.
+    This means a lot of maintenance overhead and manual work, which is very timeconsuming and prone to errors.
+    Engineers rely on fragile helper scripts, often written in Python or Pearl, 
+    which lack semantic awareness of the underlying hardware types and need to be maintained on top of the already existing code.
+\end{enumerate}
+
+\subsubsection{Chisel}
+
+In order to rise above these architectural limitations, 
+scientists at the university UC Berkely have developed  \gls{chisel} (\textbf{C}onstructing \textbf{H}ardware \textbf{i}n a \textbf{S}cala \textbf{E}mbedded \textbf{L}anguage). \cite{bachrach2012chisel}
+Chisel is a domain specific language embedded inside the modern statically typed Scala programming language.
+It is not a high-level synthesis tool that infers hardware from C code.
+Chisel does not simulate hardware. It constructs a hardware elaboration graph in memory.
+By executing it in the runtime environment (JVM),
+hardware developers gain acess to modern software engineering design methods during the hardware elaboration process, such as: 
+
+\begin{itemize}
+  \item \textbf{Object-Oriented Abstraction:} functional blocks inheretr from abstract classes and provide reusable traits (mixins).
+    Rocket and \gls{BOOM} tiles share common reusable traits like \textit{HasCoreParameters} and \textit{HasL1HellaCacheParameters}, 
+    which enable reusing code across different distinct execution pipelines.
+  \item \textbf{Higher-Order-Functions and Metaprogramming:} Combinational and repetitive hardware logic can be expressed in a concive way by using functional programming methods like \textit{map}, \textit{reduce} and pattern matching.
+    For example a priority arbiter or an ALU operand decoder that would require a lot of nested lines of code in Verilog can be produced by a single functional pipeline in \gls{Chisel}.
+  \item \textbf{Parametric Polymorphism:} Harware modules can be generic regarding data types.
+    For example, a single First-In-First-Out (FIFO) buffer class (\texttt{Queue[T <: Data]}) can instatiate queues for single-bit flags,
+    64-bit integer values or even complex TileLink coherence message bundles without having to change the underlying control logic.
+  \item \textbf{Graph-Based Diplomatic Interconnects:} The diplomacy framework models on-chip communication as a directed graph.
+    During an early elaboration pass, connected nodes negotiate bus widths, adress spaces, burst lengths and master/slave ID allocations.
+    These nodes automatically generate the required width adapters, FIFOFixers and crossbar arbiters prior to hardware generation.
+\end{itemize}
+
+
+\subsubsection{FIRRTL: The Layer Inbetween}
+
+In the Chisel environment, the executing Scala program elaborates the circuit into the \gls{FIRRTL} (\textbf{F}lexible \textbf{I}ntermediate \textbf{R}epresentation for \textbf{RTL}) \cite{amid2020chipyard}
+
+
 
 \subsection{The Chipyard Ecosystem \& Integrated Generators}
 
@@ -252,14 +316,6 @@ Inside the chipyard ecosystem processors, memory systems and crossbars are compo
 
 
 
-
-Another difference is how both platforms deal with software fragmentation. % Asanović, "RISC-V Profiles", RISC-V International 
-Software fragmentation describes the issue that occurs when a software is divided into multiple different versions that are incompatible with each other. 
-ARM handles this issue by imposing a strict limit on custom Instructions for connstrained embededd cores (see Cortex-M33 and M55).
-Only recently has ARM introduced very limited "custom instructions"
-This greatly limits and restricts software customizablility.
-RISC-V on the other hand includes dedicated custom opcode field.
-This makes RISC-V uniquely qualified for domain-specific accelerators (DSAs) in Machine Learning, cryptography and signal processing. However, the possibility of software fragmentation is thus greatly increased.
 
 
 % source for rocket and boom https://www2.eecs.berkeley.edu/Pubs/TechRpts/2016/Archive/EECS-2016-17.pdf
